@@ -9,5 +9,5 @@ class Gift extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['bank_name', 'rekening_number', 'rekening_name'];
+    protected $guarded = [];
 }

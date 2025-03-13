@@ -35,7 +35,7 @@ return new class extends Migration
             $table->string('reception_place');
             $table->string('reception_address');
             $table->string('address_link');
-            $table->array('gallery');
+            $table->string('gallery');
             $table->timestamps();
         });
     }
