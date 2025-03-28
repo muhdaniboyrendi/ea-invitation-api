@@ -31,11 +31,11 @@ class GoogleAuthController extends Controller
 
             return response()->json([
                 'status' => true,
+                'message' => 'Login successful',
                 'data' => [
                     'user' => $user,
                     'token' => $token
                 ],
-                'message' => 'Login successful'
             ]);
         } catch (\Exception $e) {
             return response()->json([
