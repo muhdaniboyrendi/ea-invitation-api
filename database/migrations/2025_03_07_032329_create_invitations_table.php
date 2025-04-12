@@ -13,10 +13,11 @@ return new class extends Migration
     {
         Schema::create('invitations', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->foreignId('package_id')->constrained()->onDelete('cascade');
-            $table->foreignId('theme_id')->constrained()->onDelete('cascade');
-            $table->string('status');
+            $table->foreignId('order_id')->constrained()->onDelete('cascade');
+            $table->foreignId('theme_id')->constrained()->onDelete('restrict');
+            $table->string('unique_code', 20)->unique();
+            $table->enum('status', ['draft', 'published', 'archived'])->default('draft');
+            $table->date('expiry_date')->nullable();
             $table->timestamps();
         });
     }

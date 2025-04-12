@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Theme extends Model
@@ -11,8 +12,8 @@ class Theme extends Model
 
     protected $guarded = [];
 
-    public function invitation()
+    public function invitations(): HasMany
     {
-        return $this->belongsTo(Invitation::class);
+        return $this->hasMany(Invitation::class);
     }
 }

@@ -11,12 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('guests', function (Blueprint $table) {
+        Schema::create('gift_infos', function (Blueprint $table) {
             $table->id();
             $table->foreignId('invitation_id')->constrained()->onDelete('cascade');
-            $table->string('name', 100);
-            $table->string('phone', 20)->nullable();
-            $table->string('email', 100)->nullable();
+            $table->string('bank_name', 100);
+            $table->string('account_number', 50);
+            $table->string('account_holder', 100);
             $table->timestamps();
         });
     }
@@ -26,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('guests');
+        Schema::dropIfExists('gift_infos');
     }
 };

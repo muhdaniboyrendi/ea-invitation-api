@@ -11,12 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('stories', function (Blueprint $table) {
+        Schema::create('visitor_logs', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('invitation_detail_id')->constrained()->onDelete('cascade');
-            $table->string('title');
-            $table->date('date')->nullable();
-            $table->text('fill');
+            $table->foreignId('invitation_id')->constrained()->onDelete('cascade');
+            $table->string('ip_address', 45)->nullable();
+            $table->text('user_agent')->nullable();
+            $table->timestamp('visited_at')->useCurrent();
             $table->timestamps();
         });
     }
@@ -26,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('stories');
+        Schema::dropIfExists('visitor_logs');
     }
 };

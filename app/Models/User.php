@@ -50,8 +50,13 @@ class User extends Authenticatable
         ];
     }
 
-    public function invitations(): HasMany
+    public function orders(): HasMany
     {
-        return $this->hasMany(Invitation::class);
+        return $this->hasMany(Order::class);
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
     }
 }

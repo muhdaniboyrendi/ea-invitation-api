@@ -3,32 +3,29 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class Guest extends Model
+class CoupleInfo extends Model
 {
     use HasFactory;
 
+    protected $table = 'couple_info';
+
     protected $fillable = [
         'invitation_id',
-        'name',
-        'phone',
-        'email',
-    ];
-
-    protected $casts = [
-        'is_vip' => 'boolean',
+        'groom_name',
+        'groom_father',
+        'groom_mother',
+        'groom_instagram',
+        'bride_name',
+        'bride_father',
+        'bride_mother',
+        'bride_instagram',
     ];
 
     public function invitation(): BelongsTo
     {
         return $this->belongsTo(Invitation::class);
-    }
-
-    public function rsvp(): HasOne
-    {
-        return $this->hasOne(Rsvp::class);
     }
 }
