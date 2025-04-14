@@ -10,8 +10,10 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
-Route::get('/auth/google', [AuthController::class, 'redirectToGoogle']);
-Route::match(['GET', 'POST'], '/auth/google/callback', [AuthController::class, 'handleGoogleCallback']);
+Route::prefix('auth')->group(function () {
+    Route::get('google', [GoogleAuthController::class, 'redirectToGoogle']);
+    Route::get('google/callback', [GoogleAuthController::class, 'handleGoogleCallback']);
+});
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);

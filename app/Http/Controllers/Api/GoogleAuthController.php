@@ -3,45 +3,54 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\User;
-use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Hash;
 use Laravel\Socialite\Facades\Socialite;
 
 class GoogleAuthController extends Controller
 {
     public function redirectToGoogle()
     {
-        return Socialite::driver('google')->stateless()->redirect();
+        return response()->json([
+            'url' => Socialite::driver('google')
+                ->stateless()
+                ->redirect()
+                ->getTargetUrl(),
+        ]);
     }
 
-    public function handleGoogleCallback(Request $request)
+    public function handleGoogleCallback()
     {
         try {
             $googleUser = Socialite::driver('google')->stateless()->user();
             
-            $user = User::updateOrCreate([
-                'email' => $googleUser->email
-            ], [
-                'name' => $googleUser->name,
-                'google_id' => $googleUser->id,
-                'password' => bcrypt(Str::random(20))
-            ]);
-
-            $token = $user->createToken('Google OAuth Token')->plainTextToken;
-
-            return response()->json([
-                'status' => true,
-                'message' => 'Login successful',
-                'data' => [
-                    'user' => $user,
-                    'token' => $token
-                ],
-            ]);
+            // Cek apakah email sudah terdaftar
+            $user = User::where('email', $googleUser->email)->first();
+            
+            if (!$user) {
+                // Buat user baru jika belum terdaftar
+                $user = User::create([
+                    'name' => $googleUser->name,
+                    'email' => $googleUser->email,
+                    'password' => Hash::make(Str::random(16)),
+                    'google_id' => $googleUser->id,
+                ]);
+            } else {
+                // Update google_id jika belum ada
+                $user->update([
+                    'google_id' => $googleUser->id,
+                ]);
+            }
+            
+            // Generate token untuk user
+            $token = $user->createToken('auth_token')->plainTextToken;
+            
+            // Redirect ke frontend dengan token
+            return redirect(env('FRONTEND_URL') . '/auth/google/callback?token=' . $token);
+            
         } catch (\Exception $e) {
-            return response()->json([
-                'status' => false,
-                'message' => $e->getMessage()
-            ], 400);
+            return redirect(env('FRONTEND_URL') . '/auth/google/callback?error=Autentikasi gagal');
         }
     }
 }
