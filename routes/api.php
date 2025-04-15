@@ -11,12 +11,15 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 Route::prefix('auth')->group(function () {
-    Route::get('google', [GoogleAuthController::class, 'redirectToGoogle']);
-    Route::get('google/callback', [GoogleAuthController::class, 'handleGoogleCallback']);
+    Route::get('google', [GoogleAuthController::class, 'googleLogin']);
+    Route::get('google/callback', [GoogleAuthController::class, 'callback']);
 });
+
+// Route::post('/auth/google', [GoogleAuthController::class, 'handleGoogleLogin']);
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
 });

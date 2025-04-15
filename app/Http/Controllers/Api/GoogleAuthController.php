@@ -4,53 +4,48 @@ namespace App\Http\Controllers\Api;
 
 use App\Models\User;
 use Illuminate\Support\Str;
+use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Hash;
 use Laravel\Socialite\Facades\Socialite;
 
 class GoogleAuthController extends Controller
 {
-    public function redirectToGoogle()
+    public function googleLogin(Request $request)
     {
-        return response()->json([
-            'url' => Socialite::driver('google')
-                ->stateless()
-                ->redirect()
-                ->getTargetUrl(),
+        $request->validate([
+            'id_token' => 'required|string'
         ]);
-    }
 
-    public function handleGoogleCallback()
-    {
-        try {
-            $googleUser = Socialite::driver('google')->stateless()->user();
-            
-            // Cek apakah email sudah terdaftar
-            $user = User::where('email', $googleUser->email)->first();
-            
-            if (!$user) {
-                // Buat user baru jika belum terdaftar
-                $user = User::create([
-                    'name' => $googleUser->name,
-                    'email' => $googleUser->email,
-                    'password' => Hash::make(Str::random(16)),
-                    'google_id' => $googleUser->id,
-                ]);
-            } else {
-                // Update google_id jika belum ada
-                $user->update([
-                    'google_id' => $googleUser->id,
-                ]);
-            }
-            
-            // Generate token untuk user
-            $token = $user->createToken('auth_token')->plainTextToken;
-            
-            // Redirect ke frontend dengan token
-            return redirect(env('FRONTEND_URL') . '/auth/google/callback?token=' . $token);
-            
-        } catch (\Exception $e) {
-            return redirect(env('FRONTEND_URL') . '/auth/google/callback?error=Autentikasi gagal');
+        $client = new GoogleClient(['client_id' => env('GOOGLE_CLIENT_ID')]);
+        $payload = $client->verifyIdToken($request->id_token);
+
+        if (!$payload) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Invalid Google token'
+            ], 401);
         }
+
+        $user = User::where('email', $payload['email'])->first();
+
+        if (!$user) {
+            $user = User::create([
+                'name' => $payload['name'],
+                'email' => $payload['email'],
+                'password' => Hash::make(Str::random(24)),
+                'email_verified_at' => now(),
+            ]);
+        }
+
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+        return response()->json([
+            'status' => true,
+            'data' => [
+                'user' => $user,
+                'token' => $token
+            ]
+        ]);
     }
 }
