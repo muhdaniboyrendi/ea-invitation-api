@@ -4,48 +4,56 @@ namespace App\Http\Controllers\Api;
 
 use App\Models\User;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
-use Illuminate\Support\Facades\Hash;
-use Laravel\Socialite\Facades\Socialite;
+use Illuminate\Support\Facades\Auth;
 
 class GoogleAuthController extends Controller
 {
-    public function googleLogin(Request $request)
+    public function handleGoogleToken(Request $request)
     {
-        $request->validate([
-            'id_token' => 'required|string'
+        $code = $request->input('code');
+        $codeVerifier = $request->input('codeVerifier');
+
+        $response = Http::post('https://oauth2.googleapis.com/token', [
+            'client_id' => config('services.google.client_id'),
+            'client_secret' => config('services.google.client_secret'),
+            'redirect_uri' => 'http://localhost:3000/login/google/callback',
+            'grant_type' => 'authorization_code',
+            'code' => $code,
+            'code_verifier' => $codeVerifier,
         ]);
 
-        $client = new GoogleClient(['client_id' => env('GOOGLE_CLIENT_ID')]);
-        $payload = $client->verifyIdToken($request->id_token);
-
-        if (!$payload) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Invalid Google token'
-            ], 401);
+        if ($response->failed()) {
+            return response()->json(['status' => false, 'message' => 'Failed to exchange code'], 400);
         }
 
-        $user = User::where('email', $payload['email'])->first();
+        $tokenData = $response->json();
+        $accessToken = $tokenData['access_token'];
+
+        $userResponse = Http::withToken($accessToken)->get('https://www.googleapis.com/oauth2/v3/userinfo');
+        $googleUser = $userResponse->json();
+
+        $user = User::where('email', $googleUser['email'])->first();
 
         if (!$user) {
             $user = User::create([
-                'name' => $payload['name'],
-                'email' => $payload['email'],
-                'password' => Hash::make(Str::random(24)),
-                'email_verified_at' => now(),
+                'name' => $googleUser['name'],
+                'email' => $googleUser['email'],
+                'password' => bcrypt(Str::random(16)),
+                'google_id' => $googleUser['sub'],
             ]);
+        } else {
+            if (!$user->google_id) {
+                $user->google_id = $googleUser['sub'];
+                $user->save();
+            }
         }
 
+        Auth::login($user);
         $token = $user->createToken('auth_token')->plainTextToken;
 
-        return response()->json([
-            'status' => true,
-            'data' => [
-                'user' => $user,
-                'token' => $token
-            ]
-        ]);
+        return response()->json(['status' => true, 'data' => ['token' => $token, 'user' => $user]]);
     }
 }
