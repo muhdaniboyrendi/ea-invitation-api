@@ -3,57 +3,70 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\User;
-use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
-use Illuminate\Support\Facades\Auth;
+use Laravel\Socialite\Facades\Socialite;
 
 class GoogleAuthController extends Controller
 {
-    public function handleGoogleToken(Request $request)
+    public function redirectToGoogle()
     {
-        $code = $request->input('code');
-        $codeVerifier = $request->input('codeVerifier');
+        return Socialite::driver('google')->stateless()->redirect();
+    }
 
-        $response = Http::post('https://oauth2.googleapis.com/token', [
-            'client_id' => config('services.google.client_id'),
-            'client_secret' => config('services.google.client_secret'),
-            'redirect_uri' => 'http://localhost:3000/login/google/callback',
-            'grant_type' => 'authorization_code',
-            'code' => $code,
-            'code_verifier' => $codeVerifier,
-        ]);
+    public function handleGoogleCallback(Request $request)
+    {
+        try {
+            $googleUser = Socialite::driver('google')->stateless()->user();
 
-        if ($response->failed()) {
-            return response()->json(['status' => false, 'message' => 'Failed to exchange code'], 400);
-        }
+            $user = User::where('email', $googleUser->email)->first();
 
-        $tokenData = $response->json();
-        $accessToken = $tokenData['access_token'];
-
-        $userResponse = Http::withToken($accessToken)->get('https://www.googleapis.com/oauth2/v3/userinfo');
-        $googleUser = $userResponse->json();
-
-        $user = User::where('email', $googleUser['email'])->first();
-
-        if (!$user) {
-            $user = User::create([
-                'name' => $googleUser['name'],
-                'email' => $googleUser['email'],
-                'password' => bcrypt(Str::random(16)),
-                'google_id' => $googleUser['sub'],
-            ]);
-        } else {
-            if (!$user->google_id) {
-                $user->google_id = $googleUser['sub'];
-                $user->save();
+            if (!$user) {
+                $user = User::create([
+                    'name' => $googleUser->name,
+                    'email' => $googleUser->email,
+                    'google_id' => $googleUser->id,
+                    'password' => bcrypt(rand(100000, 999999)),
+                    'email_verified_at' => now(),
+                ]);
+            } else {
+                if (empty($user->google_id)) {
+                    $user->update([
+                        'google_id' => $googleUser->id,
+                    ]);
+                }
             }
+
+            $token = $user->createToken('auth_token')->plainTextToken;
+
+            if ($request->wantsJson() || $request->ajax() || $request->expectsJson()) {
+                return response()->json([
+                    'status' => true,
+                    'message' => 'User authenticated successfully',
+                    'data' => [
+                        'token' => $token,
+                        'user' => $user,
+                    ],
+                ]);
+            }
+
+            $frontendUrl = config('app.frontend_url', 'http://localhost:3000');
+            $redirectUrl = "{$frontendUrl}/auth/callback?token={$token}&user=" . urlencode(json_encode($user));
+            
+            return redirect($redirectUrl);
+        } catch (\Exception $e) {
+            if ($request->wantsJson() || $request->ajax() || $request->expectsJson()) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Authentication failed',
+                    'errors' => [
+                        'google' => [$e->getMessage()],
+                    ],
+                ], 500);
+            }
+            
+            $frontendUrl = config('app.frontend_url', 'http://localhost:3000');
+            return redirect("{$frontendUrl}/login?error=" . urlencode('Authentication failed: ' . $e->getMessage()));
         }
-
-        Auth::login($user);
-        $token = $user->createToken('auth_token')->plainTextToken;
-
-        return response()->json(['status' => true, 'data' => ['token' => $token, 'user' => $user]]);
     }
 }

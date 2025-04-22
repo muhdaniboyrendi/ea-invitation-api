@@ -10,7 +10,12 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
-Route::post('/auth/google/token', [GoogleAuthController::class, 'handleGoogleToken']);
+Route::prefix('auth')->group(function () {
+    Route::get('/google', [GoogleAuthController::class, 'redirectToGoogle']);
+    Route::get('/google/callback', [GoogleAuthController::class, 'handleGoogleCallback']);
+});
+
+// Route::post('/auth/google/token', [GoogleAuthController::class, 'handleGoogleToken']);
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
