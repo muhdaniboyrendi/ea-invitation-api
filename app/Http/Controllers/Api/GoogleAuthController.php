@@ -14,7 +14,7 @@ class GoogleAuthController extends Controller
         return Socialite::driver('google')->stateless()->redirect();
     }
 
-    public function handleGoogleCallback(Request $request)
+    public function handleGoogleCallback()
     {
         try {
             $googleUser = Socialite::driver('google')->stateless()->user();
@@ -39,7 +39,7 @@ class GoogleAuthController extends Controller
 
             $token = $user->createToken('auth_token')->plainTextToken;
 
-            if ($request->wantsJson() || $request->ajax() || $request->expectsJson()) {
+            // if ($request->wantsJson() || $request->ajax() || $request->expectsJson()) {
                 return response()->json([
                     'status' => true,
                     'message' => 'User authenticated successfully',
@@ -48,14 +48,14 @@ class GoogleAuthController extends Controller
                         'user' => $user,
                     ],
                 ]);
-            }
+            // }
 
-            $frontendUrl = config('app.frontend_url', 'http://localhost:3000');
-            $redirectUrl = "{$frontendUrl}/auth/callback?token={$token}&user=" . urlencode(json_encode($user));
+            // $frontendUrl = config('app.frontend_url', 'http://localhost:3000');
+            // $redirectUrl = "{$frontendUrl}/auth/callback?token={$token}&user=" . urlencode(json_encode($user));
             
-            return redirect($redirectUrl);
+            // return redirect($redirectUrl);
         } catch (\Exception $e) {
-            if ($request->wantsJson() || $request->ajax() || $request->expectsJson()) {
+            // if ($request->wantsJson() || $request->ajax() || $request->expectsJson()) {
                 return response()->json([
                     'status' => false,
                     'message' => 'Authentication failed',
@@ -63,7 +63,7 @@ class GoogleAuthController extends Controller
                         'google' => [$e->getMessage()],
                     ],
                 ], 500);
-            }
+            // }
             
             $frontendUrl = config('app.frontend_url', 'http://localhost:3000');
             return redirect("{$frontendUrl}/login?error=" . urlencode('Authentication failed: ' . $e->getMessage()));
