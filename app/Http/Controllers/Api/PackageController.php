@@ -15,7 +15,11 @@ class PackageController extends Controller
     {
         $packages = Package::all();
 
-        return response()->json($packages);
+        return response()->json([
+            'status' => true,
+            'message' => 'ok',
+            'data' => $packages
+        ], 200);
     }
 
     /**
@@ -31,7 +35,11 @@ class PackageController extends Controller
 
         $package = Package::create($request->all());
 
-        return response()->json($package, 201);
+        return response()->json([
+            'status' => true,
+            'message' => 'ok',
+            'data' => $package
+        ], 201);
     }
 
     /**
