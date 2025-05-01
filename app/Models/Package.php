@@ -12,15 +12,13 @@ class Package extends Model
 
     protected $fillable = [
         'name',
-        'description',
         'price',
         'features',
-        'is_active',
     ];
 
     protected $casts = [
-        'is_active' => 'boolean',
         'price' => 'decimal:2',
+        'features' => 'array',
     ];
 
     public function orders(): HasMany

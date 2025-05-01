@@ -2,8 +2,9 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
+use App\Models\Package;
 use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
 
 class PackageController extends Controller
 {
@@ -12,7 +13,9 @@ class PackageController extends Controller
      */
     public function index()
     {
-        //
+        $packages = Package::all();
+
+        return response()->json($packages);
     }
 
     /**
@@ -20,7 +23,15 @@ class PackageController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'price' => 'required|numeric',
+            'features' => 'required|array',
+        ]);
+
+        $package = Package::create($request->all());
+
+        return response()->json($package, 201);
     }
 
     /**
@@ -28,7 +39,9 @@ class PackageController extends Controller
      */
     public function show(string $id)
     {
-        //
+        $package = Package::findOrFail($id);
+
+        return response()->json($package);
     }
 
     /**
@@ -36,7 +49,16 @@ class PackageController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        //
+        $request->validate([
+            'name' => 'sometimes|required|string|max:255',
+            'price' => 'sometimes|required|numeric',
+            'features' => 'sometimes|required|array',
+        ]);
+
+        $package = Package::findOrFail($id);
+        $package->update($request->all());
+
+        return response()->json($package);
     }
 
     /**
@@ -44,6 +66,9 @@ class PackageController extends Controller
      */
     public function destroy(string $id)
     {
-        //
+        $package = Package::findOrFail($id);
+        $package->delete();
+
+        return response()->json(null, 204);
     }
 }
