@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Models\Package;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Validator;
 
 class PackageController extends Controller
 {
@@ -27,11 +28,19 @@ class PackageController extends Controller
      */
     public function store(Request $request)
     {
-        $request->validate([
+        $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
-            'price' => 'required|numeric',
-            'features' => 'required|array',
+            'price' => 'required|integer|min:0',
+            'discount' => 'nullable|integer|min:0|max:100',
+            'features' => 'nullable|array',
         ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
 
         $package = Package::create($request->all());
 
@@ -55,15 +64,22 @@ class PackageController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, Package $package)
     {
-        $request->validate([
-            'name' => 'sometimes|required|string|max:255',
-            'price' => 'sometimes|required|numeric',
-            'features' => 'sometimes|required|array',
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'price' => 'required|integer|min:0',
+            'discount' => 'nullable|integer|min:0|max:100',
+            'features' => 'nullable|array',
         ]);
 
-        $package = Package::findOrFail($id);
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
         $package->update($request->all());
 
         return response()->json($package);
@@ -72,9 +88,8 @@ class PackageController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(Package $package)
     {
-        $package = Package::findOrFail($id);
         $package->delete();
 
         return response()->json(null, 204);
