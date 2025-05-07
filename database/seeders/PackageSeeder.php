@@ -71,8 +71,8 @@ class PackageSeeder extends Seeder
         ]);
         
         Package::create([
-            'name' => 'Business',
-            'price' => 200000,
+            'name' => 'First Class',
+            'price' => 300000,
             'features' => [
                 'Unlimited tamu undangan + grup',
                 'Unlimited foto galeri (max)',

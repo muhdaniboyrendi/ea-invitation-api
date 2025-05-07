@@ -68,7 +68,7 @@ class PackageController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
-            'price' => 'required|integer|min:0',
+            'price' => 'required|min:0',
             'discount' => 'nullable|integer|min:0|max:100',
             'features' => 'nullable|array',
         ]);
