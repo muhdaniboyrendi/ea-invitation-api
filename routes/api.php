@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\ThemeController;
 use App\Http\Controllers\Api\PackageController;
 use App\Http\Controllers\Api\GoogleAuthController;
 
@@ -25,3 +26,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
 Route::apiResource('users', UserController::class);
 Route::apiResource('packages', PackageController::class);
+
+Route::get('/categories', [ThemeController::class, 'getCategories']);
+Route::apiResource('themes', ThemeController::class);

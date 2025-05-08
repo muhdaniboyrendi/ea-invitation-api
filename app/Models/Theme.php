@@ -10,10 +10,29 @@ class Theme extends Model
 {
     use HasFactory;
 
-    protected $guarded = [];
+    protected $fillable = [
+        'name',
+        'category_id',
+        'link',
+        'thumbnail',
+    ];
 
     public function invitations(): HasMany
     {
         return $this->hasMany(Invitation::class);
+    }
+
+    public function category()
+    {
+        return $this->belongsTo(ThemeCategory::class);
+    }
+
+    public function getThumbnailUrlAttribute()
+    {
+        if ($this->thumbnail) {
+            return asset('storage/' . $this->thumbnail);
+        }
+        
+        return null;
     }
 }
