@@ -12,7 +12,7 @@ class Theme extends Model
 
     protected $fillable = [
         'name',
-        'category_id',
+        'theme_category_id',
         'link',
         'thumbnail',
     ];

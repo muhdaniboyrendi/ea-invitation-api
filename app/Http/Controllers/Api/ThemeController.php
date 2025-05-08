@@ -41,8 +41,8 @@ class ThemeController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
-            'category_id' => 'required|exists:categories,id',
-            'thumbnail' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'theme_category_id' => 'required|exists:theme_categories,id',
+            'thumbnail' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:4096',
             'link' => 'nullable|string'
         ]);
 
@@ -65,7 +65,7 @@ class ThemeController extends Controller
         // Buat tema baru
         $theme = Theme::create([
             'name' => $request->name,
-            'category_id' => $request->category_id,
+            'theme_category_id' => $request->theme_category_id,
             'link' => $request->link,
             'thumbnail' => $thumbnailPath
         ]);
@@ -114,7 +114,7 @@ class ThemeController extends Controller
         // Validasi input
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
-            'category_id' => 'required|exists:categories,id',
+            'theme_category_id' => 'required|exists:categories,id',
             'thumbnail' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'link' => 'nullable|string'
         ]);
@@ -143,7 +143,7 @@ class ThemeController extends Controller
 
         // Update tema
         $theme->name = $request->name;
-        $theme->category_id = $request->category_id;
+        $theme->theme_category_id = $request->theme_category_id;
         $theme->link = $request->link;
         $theme->save();
 
