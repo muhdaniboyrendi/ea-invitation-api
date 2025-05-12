@@ -27,5 +27,12 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::apiResource('users', UserController::class);
 Route::apiResource('packages', PackageController::class);
 
+Route::prefix('themes')->group(function () {
+    Route::get('/', [ThemeController::class, 'index']);
+    Route::post('/', [ThemeController::class, 'store']);
+    Route::get('/{id}', [ThemeController::class, 'show']);
+    Route::put('/{id}', [ThemeController::class, 'update']);
+    Route::delete('/{id}', [ThemeController::class, 'destroy']);
+});
+
 Route::get('/categories', [ThemeController::class, 'getCategories']);
-Route::apiResource('themes', ThemeController::class);

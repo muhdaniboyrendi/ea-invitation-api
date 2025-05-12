@@ -16,7 +16,7 @@ class ThemeController extends Controller
      */
     public function index()
     {
-        $themes = Theme::with('category')->get();
+        $themes = Theme::with('themeCategory')->get();
         
         return response()->json([
             'status' => true,
@@ -54,7 +54,6 @@ class ThemeController extends Controller
             ], 422);
         }
 
-        // Upload thumbnail jika ada
         $thumbnailPath = null;
         if ($request->hasFile('thumbnail')) {
             $file = $request->file('thumbnail');
@@ -62,13 +61,14 @@ class ThemeController extends Controller
             $thumbnailPath = $file->storeAs('themes/thumbnails', $fileName, 'public');
         }
 
-        // Buat tema baru
         $theme = Theme::create([
             'name' => $request->name,
             'theme_category_id' => $request->theme_category_id,
             'link' => $request->link,
             'thumbnail' => $thumbnailPath
         ]);
+
+        $theme->thumbnail_url = $thumbnailPath ? url('storage/' . $thumbnailPath) : null;
 
         return response()->json([
             'status' => true,
@@ -90,7 +90,7 @@ class ThemeController extends Controller
                 'message' => 'Theme not found'
             ], 404);
         }
-        
+                
         return response()->json([
             'status' => true,
             'data' => $theme
@@ -111,11 +111,10 @@ class ThemeController extends Controller
             ], 404);
         }
         
-        // Validasi input
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
-            'theme_category_id' => 'required|exists:categories,id',
-            'thumbnail' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'theme_category_id' => 'required|exists:theme_categories,id',
+            'thumbnail' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:4096',
             'link' => 'nullable|string'
         ]);
 
@@ -127,9 +126,7 @@ class ThemeController extends Controller
             ], 422);
         }
 
-        // Upload thumbnail baru jika ada
         if ($request->hasFile('thumbnail')) {
-            // Hapus thumbnail lama jika ada
             if ($theme->thumbnail) {
                 Storage::disk('public')->delete($theme->thumbnail);
             }
@@ -141,11 +138,12 @@ class ThemeController extends Controller
             $theme->thumbnail = $thumbnailPath;
         }
 
-        // Update tema
         $theme->name = $request->name;
         $theme->theme_category_id = $request->theme_category_id;
         $theme->link = $request->link;
         $theme->save();
+
+        $theme->thumbnail_url = $theme->thumbnail ? url('storage/' . $theme->thumbnail) : null;
 
         return response()->json([
             'status' => true,
@@ -168,7 +166,6 @@ class ThemeController extends Controller
             ], 404);
         }
         
-        // Hapus thumbnail jika ada
         if ($theme->thumbnail) {
             Storage::disk('public')->delete($theme->thumbnail);
         }

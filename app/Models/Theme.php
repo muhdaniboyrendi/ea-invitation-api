@@ -22,7 +22,7 @@ class Theme extends Model
         return $this->hasMany(Invitation::class);
     }
 
-    public function category()
+    public function themeCategory()
     {
         return $this->belongsTo(ThemeCategory::class);
     }
