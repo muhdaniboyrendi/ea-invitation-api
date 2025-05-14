@@ -82,7 +82,7 @@ class ThemeController extends Controller
      */
     public function show(String $id)
     {
-        $theme = Theme::with('category')->find($id);
+        $theme = Theme::findOrFail($id);
         
         if (!$theme) {
             return response()->json([
@@ -100,17 +100,8 @@ class ThemeController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, Theme $theme)
     {
-        $theme = Theme::find($id);
-        
-        if (!$theme) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Theme not found'
-            ], 404);
-        }
-        
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'theme_category_id' => 'required|exists:theme_categories,id',
@@ -143,8 +134,6 @@ class ThemeController extends Controller
         $theme->link = $request->link;
         $theme->save();
 
-        $theme->thumbnail_url = $theme->thumbnail ? url('storage/' . $theme->thumbnail) : null;
-
         return response()->json([
             'status' => true,
             'message' => 'Theme has been successfully updated',
@@ -155,7 +144,7 @@ class ThemeController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(String $id)
     {
         $theme = Theme::find($id);
         

@@ -15,13 +15,13 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->foreignId('package_id')->constrained()->onDelete('restrict');
+            $table->string('order_id')->unique();
             $table->decimal('amount', 10, 2);
-            $table->enum('status', ['pending', 'paid', 'canceled', 'expired'])->default('pending');
-            $table->string('payment_id', 100)->nullable();
-            $table->string('payment_method', 50)->nullable();
-            $table->string('payment_url')->nullable();
-            $table->string('payment_token')->nullable();
-            $table->timestamp('payment_time')->nullable();
+            $table->enum('payment_status', ['pending', 'paid', 'canceled', 'expired'])->default('pending');
+            $table->string('payment_method')->nullable();
+            $table->string('snap_token')->nullable();
+            $table->string('midtrans_url')->nullable();
+            $table->string('midtrans_transaction_id')->nullable();
             $table->timestamps();
         });
     }

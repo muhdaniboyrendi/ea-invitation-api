@@ -58,7 +58,10 @@ class PackageController extends Controller
     {
         $package = Package::findOrFail($id);
 
-        return response()->json($package);
+        return response()->json([
+            'status' => true,
+            'data' => $package
+        ]);
     }
 
     /**

@@ -14,18 +14,17 @@ class Order extends Model
     protected $fillable = [
         'user_id',
         'package_id',
+        'order_id',
         'amount',
-        'status',
-        'payment_id',
+        'payment_status',
         'payment_method',
-        'payment_url',
-        'payment_token',
-        'payment_time',
+        'snap_token',
+        'midtrans_url',
+        'midtrans_transaction_id',
     ];
 
     protected $casts = [
         'amount' => 'decimal:2',
-        'payment_time' => 'datetime',
     ];
 
     public function user(): BelongsTo
