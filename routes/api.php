@@ -4,12 +4,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\UserController;
-use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ThemeController;
 use App\Http\Controllers\Api\PackageController;
-use App\Http\Controllers\Api\PaymentController;
-use App\Http\Controllers\Api\MidtransController;
 use App\Http\Controllers\Api\GoogleAuthController;
+use App\Http\Controllers\Api\OrderController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -43,11 +41,11 @@ Route::get('/categories', [ThemeController::class, 'getCategories']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('payments')->group(function () {
-        Route::post('/create', [PaymentController::class, 'createPayment']);
-        Route::get('/orders', [PaymentController::class, 'getUserOrders']);
-        Route::get('/orders/{orderId}', [PaymentController::class, 'getOrderStatus']);
-        Route::post('/orders/{orderId}/cancel', [PaymentController::class, 'cancelOrder']);
+        Route::post('/create', [OrderController::class, 'createPayment']);
+        Route::get('/orders', [OrderController::class, 'getUserOrders']);
+        Route::get('/orders/{orderId}', [OrderController::class, 'getOrderStatus']);
+        Route::post('/orders/{orderId}/cancel', [OrderController::class, 'cancelOrder']);
     });
 });
 
-Route::post('/payments/notification', [PaymentController::class, 'handleNotification']);
+Route::post('/payments/notification', [OrderController::class, 'handleNotification']);

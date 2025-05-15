@@ -46,6 +46,7 @@ class OrderController extends Controller
         $package = Package::findOrFail($request->package_id);
 
         $finalPrice = $package->price;
+        
         if ($package->discount) {
             $finalPrice = $package->price - ($package->price * $package->discount / 100);
         }
@@ -100,7 +101,6 @@ class OrderController extends Controller
                 ]
             ], 201);
         } catch (\Exception $e) {
-            // Delete order on failure
             $order->delete();
             
             return response()->json([
