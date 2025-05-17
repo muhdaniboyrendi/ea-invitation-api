@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
@@ -15,11 +16,19 @@ class UserController extends Controller
      */
     public function index()
     {
+        if (Auth::user()->role != 'admin') {
+            return response()->json([
+                'status' => false,
+                'message' => 'Forbidden access'
+            ], 403);
+        }
+        
         $users = User::all();
 
         return response()->json([
+            'status' => true,
             'message' => 'ok',
-            'users' => $users
+            'data' => $users
         ], 200);
     }
 
@@ -28,26 +37,7 @@ class UserController extends Controller
      */
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required|string|min:6',
-            'telp' => 'nullable|string|max:20',
-            'role' => ['required', Rule::in(['admin', 'user'])],
-        ]);
-
-        $user = User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
-            'telp' => $validated['telp'] ?? null,
-            'role' => $validated['role'],
-        ]);
-
-        return response()->json([
-            'message' => 'User created successfully',
-            'user' => $user
-        ], 201);
+        //
     }
 
     /**
@@ -55,7 +45,13 @@ class UserController extends Controller
      */
     public function show(string $id)
     {
-        //
+        $user = User::find($id);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'ok',
+            'data' => $user
+        ]);
     }
 
     /**
@@ -72,5 +68,25 @@ class UserController extends Controller
     public function destroy(string $id)
     {
         //
+    }
+
+    public function setAdmin(string $id)
+    {
+        if (Auth::user()->role != 'admin') {
+            return response()->json([
+                'status' => false,
+                'message' => 'Forbidden access'
+            ], 403);
+        }
+
+        $user = User::find($id);
+        $user->role = 'admin';
+        $user->save();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'User successfully promoted to admin',
+            'data' => $user
+        ], 200);
     }
 }

@@ -222,6 +222,42 @@ class OrderController extends Controller
         ]);
     }
 
+    public function getOrders()
+    {
+        if (Auth::user()->role != 'admin') {
+            return response()->json([
+                'status' => false,
+                'message' => 'Forbidden access'
+            ], 403);
+        }
+
+        $orders = Order::with('user', 'package', 'invitation')->get();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Ok',
+            'data' => $orders
+        ]);
+    }
+
+    public function getOrderDetail(string $id)
+    {
+        if (Auth::user()->role != 'admin') {
+            return response()->json([
+                'status' => false,
+                'message' => 'Forbidden access'
+            ], 403);
+        }
+
+        $order = Order::with('user', 'package', 'invitation')->find($id);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Ok',
+            'data' => $order
+        ]);
+    }
+
     /**
      * Get list of user orders
      * 
@@ -289,6 +325,73 @@ class OrderController extends Controller
         return response()->json([
             'status' => true,
             'message' => 'Order canceled successfully'
+        ]);
+    }
+
+    /**
+     * Handle recurring notification from Midtrans
+     * 
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function handleRecurringNotification(Request $request)
+    {
+        $notificationBody = json_decode($request->getContent(), true);
+        
+        // Verifikasi signature seperti di handleNotification
+        $signatureKey = env('MIDTRANS_SERVER_KEY');
+        $orderId = $notificationBody['order_id'];
+        $statusCode = $notificationBody['status_code'];
+        $grossAmount = $notificationBody['gross_amount'];
+        $serverKey = $signatureKey;
+        $signature = hash('sha512', $orderId . $statusCode . $grossAmount . $serverKey);
+        
+        if ($signature !== $notificationBody['signature_key']) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Invalid signature'
+            ], 403);
+        }
+
+        // Logika untuk menangani recurring payment
+        // Mirip dengan handleNotification tetapi untuk subscription/recurring
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Recurring notification processed'
+        ]);
+    }
+
+    /**
+     * Handle account notification from Midtrans
+     * 
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function handleAccountNotification(Request $request)
+    {
+        $notificationBody = json_decode($request->getContent(), true);
+        
+        // Verifikasi signature
+        $signatureKey = env('MIDTRANS_SERVER_KEY');
+        $orderId = $notificationBody['order_id'];
+        $statusCode = $notificationBody['status_code'];
+        $grossAmount = $notificationBody['gross_amount'];
+        $serverKey = $signatureKey;
+        $signature = hash('sha512', $orderId . $statusCode . $grossAmount . $serverKey);
+        
+        if ($signature !== $notificationBody['signature_key']) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Invalid signature'
+            ], 403);
+        }
+
+        // Logika untuk menangani notifikasi akun pembayaran
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Account notification processed'
         ]);
     }
 }

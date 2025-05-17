@@ -16,7 +16,7 @@ return new class extends Migration
             $table->foreignId('order_id')->constrained()->onDelete('cascade');
             $table->foreignId('theme_id')->constrained()->onDelete('restrict');
             $table->string('unique_code', 20)->unique();
-            $table->enum('status', ['draft', 'published', 'archived'])->default('draft');
+            $table->enum('status', ['nonactive', 'published', 'expired'])->default('draft');
             $table->date('expiry_date')->nullable();
             $table->timestamps();
         });

@@ -25,27 +25,36 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
 });
 
-Route::apiResource('users', UserController::class);
-Route::apiResource('packages', PackageController::class);
-Route::apiResource('themes', ThemeController::class);
+Route::put('/users/admin/{id}', [UserController::class, 'setAdmin'])->middleware('auth:sanctum');
 
-// Route::prefix('themes')->group(function () {
-//     Route::get('/', [ThemeController::class, 'index']);
-//     Route::post('/', [ThemeController::class, 'store']);
-//     Route::get('/{id}', [ThemeController::class, 'show']);
-//     Route::put('/{id}', [ThemeController::class, 'update']);
-//     Route::delete('/{id}', [ThemeController::class, 'destroy']);
-// });
-
-Route::get('/categories', [ThemeController::class, 'getCategories']);
+Route::apiResource('users', UserController::class)->middleware('auth:sanctum');
+Route::get('/themes', [PackageController::class, 'index']);
+Route::get('/packages', [PackageController::class, 'index']);
 
 Route::middleware('auth:sanctum')->group(function () {
+    Route::prefix('packages')->group(function () {
+        Route::post('/', [PackageController::class, 'store']);
+        Route::get('/{id}', [PackageController::class, 'show']);
+        Route::put('/{id}', [PackageController::class, 'update']);
+        Route::delete('/{id}', [PackageController::class, 'destroy']);
+    });
+    Route::prefix('themes')->group(function () {
+        Route::post('/', [ThemeController::class, 'store']);
+        Route::get('/{id}', [ThemeController::class, 'show']);
+        Route::put('/{id}', [ThemeController::class, 'update']);
+        Route::delete('/{id}', [ThemeController::class, 'destroy']);
+    });
     Route::prefix('payments')->group(function () {
         Route::post('/create', [OrderController::class, 'createPayment']);
         Route::get('/orders', [OrderController::class, 'getUserOrders']);
         Route::get('/orders/{orderId}', [OrderController::class, 'getOrderStatus']);
         Route::post('/orders/{orderId}/cancel', [OrderController::class, 'cancelOrder']);
     });
+    Route::get('/orders', [OrderController::class, 'getOrders']);
 });
 
+Route::get('/categories', [ThemeController::class, 'getCategories']);
+
 Route::post('/payments/notification', [OrderController::class, 'handleNotification']);
+Route::post('/payments/recurring-notification', [OrderController::class, 'handleRecurringNotification']);
+Route::post('/payments/account-notification', [OrderController::class, 'handleAccountNotification']);

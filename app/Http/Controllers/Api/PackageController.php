@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Models\Package;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 
 class PackageController extends Controller
@@ -28,6 +29,13 @@ class PackageController extends Controller
      */
     public function store(Request $request)
     {
+        if (Auth::user()->role != 'admin') {
+            return response()->json([
+                'status' => false,
+                'message' => 'Forbidden access'
+            ], 403);
+        }
+        
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'price' => 'required|integer|min:0',
