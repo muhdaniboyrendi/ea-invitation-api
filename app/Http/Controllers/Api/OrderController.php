@@ -14,20 +14,6 @@ use Illuminate\Support\Facades\Validator;
 
 class OrderController extends Controller
 {
-    public function __construct()
-    {
-        Config::$serverKey = env('MIDTRANS_SERVER_KEY');
-        Config::$isProduction = env('MIDTRANS_IS_PRODUCTION', false);
-        Config::$isSanitized = true;
-        Config::$is3ds = true;
-    }
-
-    /**
-     * Create order and get payment URL from Midtrans
-     * 
-     * @param \Illuminate\Http\Request $request
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function createPayment(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -43,7 +29,14 @@ class OrderController extends Controller
         }
 
         $user = Auth::user();
-        $package = Package::findOrFail($request->package_id);
+        $package = Package::find($request->package_id);
+        
+        if (!$package) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Package not found'
+            ], 404);
+        }
 
         $finalPrice = $package->price;
         
@@ -61,10 +54,12 @@ class OrderController extends Controller
             'payment_status' => 'pending'
         ]);
 
+        $grossAmount = (int) $order->amount;
+
         $params = [
             'transaction_details' => [
                 'order_id' => $order->order_id,
-                'gross_amount' => (int) $order->amount,
+                'gross_amount' => $grossAmount,
             ],
             'customer_details' => [
                 'first_name' => $user->name,
@@ -74,7 +69,7 @@ class OrderController extends Controller
             'item_details' => [
                 [
                     'id' => $package->id,
-                    'price' => (int) $order->amount,
+                    'price' => $grossAmount,
                     'quantity' => 1,
                     'name' => $package->name,
                 ]
@@ -82,12 +77,11 @@ class OrderController extends Controller
         ];
 
         try {
-            $snapToken = Snap::getSnapToken($params);
-            $snapUrl = Snap::getSnapUrl($params);
-
+            $snapData = $this->getSnapTokenWithHttpRequest($params);
+            
             $order->update([
-                'snap_token' => $snapToken,
-                'midtrans_url' => $snapUrl
+                'snap_token' => $snapData['token'],
+                'midtrans_url' => $snapData['redirect_url']
             ]);
 
             return response()->json([
@@ -96,12 +90,12 @@ class OrderController extends Controller
                 'data' => [
                     'order_id' => $order->order_id,
                     'amount' => $order->amount,
-                    'snap_token' => $snapToken,
-                    'redirect_url' => $snapUrl
+                    'snap_token' => $snapData['token'],
+                    'redirect_url' => $snapData['redirect_url']
                 ]
             ], 201);
         } catch (\Exception $e) {
-            $order->delete();
+            $order->update(['payment_status' => 'canceled']);
             
             return response()->json([
                 'status' => false,
@@ -111,12 +105,50 @@ class OrderController extends Controller
         }
     }
 
-    /**
-     * Get order status
-     * 
-     * @param string $orderId
-     * @return \Illuminate\Http\JsonResponse
-     */
+    private function getSnapTokenWithHttpRequest(array $params)
+    {
+        $isProduction = env('MIDTRANS_IS_PRODUCTION', false);
+        $serverKey = env('MIDTRANS_SERVER_KEY');
+        
+        if (empty($serverKey)) {
+            throw new \Exception('Midtrans Server Key is not set');
+        }
+        
+        $baseUrl = $isProduction
+            ? 'https://app.midtrans.com/snap/v1/transactions'
+            : 'https://app.sandbox.midtrans.com/snap/v1/transactions';
+        
+        $client = new \GuzzleHttp\Client();
+        
+        $headers = [
+            'Content-Type' => 'application/json',
+            'Accept' => 'application/json',
+            'Authorization' => 'Basic ' . base64_encode($serverKey . ':')
+        ];
+        
+        $response = $client->post($baseUrl, [
+            'headers' => $headers,
+            'json' => $params
+        ]);
+        
+        $statusCode = $response->getStatusCode();
+        
+        if ($statusCode !== 201) {
+            throw new \Exception('Failed to get Snap Token from Midtrans. Status code: ' . $statusCode);
+        }
+        
+        $responseData = json_decode($response->getBody()->getContents(), true);
+        
+        if (!isset($responseData['token']) || !isset($responseData['redirect_url'])) {
+            throw new \Exception('Invalid response from Midtrans');
+        }
+        
+        return [
+            'token' => $responseData['token'],
+            'redirect_url' => $responseData['redirect_url']
+        ];
+    }
+
     public function getOrderStatus($orderId)
     {
         $order = Order::where('order_id', $orderId)->first();
@@ -149,17 +181,10 @@ class OrderController extends Controller
         ]);
     }
 
-    /**
-     * Handle notification from Midtrans
-     * 
-     * @param \Illuminate\Http\Request $request
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function handleNotification(Request $request)
     {
         $notificationBody = json_decode($request->getContent(), true);
         
-        // Verify signature
         $signatureKey = env('MIDTRANS_SERVER_KEY');
         $orderId = $notificationBody['order_id'];
         $statusCode = $notificationBody['status_code'];
@@ -182,7 +207,6 @@ class OrderController extends Controller
             ], 404);
         }
 
-        // Update payment status based on transaction status
         $transactionStatus = $notificationBody['transaction_status'];
         $fraudStatus = $notificationBody['fraud_status'] ?? null;
         $paymentType = $notificationBody['payment_type'] ?? null;
@@ -204,7 +228,6 @@ class OrderController extends Controller
             $paymentStatus = 'pending';
         }
 
-        // Update order
         $order->update([
             'payment_status' => $paymentStatus,
             'payment_method' => $paymentType,
@@ -219,7 +242,7 @@ class OrderController extends Controller
         return response()->json([
             'status' => true,
             'message' => 'Notification processed'
-        ]);
+        ], 200);
     }
 
     public function getOrders()
@@ -258,16 +281,11 @@ class OrderController extends Controller
         ]);
     }
 
-    /**
-     * Get list of user orders
-     * 
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function getUserOrders()
     {
         $user = Auth::user();
         $orders = Order::where('user_id', $user->id)
-            ->with('package:id,name,price')
+            ->with('package')
             ->orderBy('created_at', 'desc')
             ->get()
             ->map(function ($order) {
@@ -278,7 +296,7 @@ class OrderController extends Controller
                     'amount' => $order->amount,
                     'payment_status' => $order->payment_status,
                     'payment_method' => $order->payment_method,
-                    'created_at' => $order->created_at->format('Y-m-d H:i:s')
+                    'updated_at' => $order->updated_at->format('Y-m-d H:i:s')
                 ];
             });
 

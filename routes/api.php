@@ -28,13 +28,16 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::put('/users/admin/{id}', [UserController::class, 'setAdmin'])->middleware('auth:sanctum');
 
 Route::apiResource('users', UserController::class)->middleware('auth:sanctum');
-Route::get('/themes', [PackageController::class, 'index']);
-Route::get('/packages', [PackageController::class, 'index']);
+Route::get('/themes', [ThemeController::class, 'index']);
+
+Route::prefix('packages')->group(function () {
+    Route::get('/', [PackageController::class, 'index']);
+    Route::get('/{id}', [PackageController::class, 'show']);
+});
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('packages')->group(function () {
         Route::post('/', [PackageController::class, 'store']);
-        Route::get('/{id}', [PackageController::class, 'show']);
         Route::put('/{id}', [PackageController::class, 'update']);
         Route::delete('/{id}', [PackageController::class, 'destroy']);
     });
