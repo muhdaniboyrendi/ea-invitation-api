@@ -13,9 +13,9 @@ class Invitation extends Model
     use HasFactory;
 
     protected $fillable = [
+        'user_id',
         'order_id',
         'theme_id',
-        'unique_code',
         'status',
         'expiry_date',
     ];
@@ -23,6 +23,11 @@ class Invitation extends Model
     protected $casts = [
         'expiry_date' => 'date',
     ];
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
 
     public function order(): BelongsTo
     {

@@ -56,6 +56,11 @@ class User extends Authenticatable
         return $this->hasMany(Order::class);
     }
 
+    public function invitatios(): HasMany
+    {
+        return $this->hasMany(Invitation::class);
+    }
+
     public function isAdmin(): bool
     {
         return $this->role === 'admin';

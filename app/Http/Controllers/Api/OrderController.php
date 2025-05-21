@@ -6,6 +6,7 @@ use Midtrans\Snap;
 use Midtrans\Config;
 use App\Models\Order;
 use App\Models\Package;
+use App\Models\Invitation;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
@@ -105,6 +106,49 @@ class OrderController extends Controller
         }
     }
 
+    public function updatePayment(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'order_id' => 'required|exists:orders,order_id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Validation Error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $user = Auth::user();
+        $order = Order::where('order_id', $request->order_id)->first();
+
+        if (!$order) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Order not found'
+            ], 404);
+        }
+    
+        if ($order->user_id !== $user->id) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Order successfully updated',
+            'data' => [
+                'order_id' => $order->order_id,
+                'amount' => $order->amount,
+                'snap_token' => $order->snap_token,
+                'redirect_url' => $order->midtrans_url
+            ]
+        ], 200);
+    }
+
     private function getSnapTokenWithHttpRequest(array $params)
     {
         $isProduction = env('MIDTRANS_IS_PRODUCTION', false);
@@ -200,6 +244,7 @@ class OrderController extends Controller
         }
 
         $order = Order::where('order_id', $orderId)->first();
+
         if (!$order) {
             return response()->json([
                 'status' => false,
@@ -234,9 +279,11 @@ class OrderController extends Controller
             'midtrans_transaction_id' => $transactionId
         ]);
 
-        // Process after payment completed - you can add any business logic here
         if ($paymentStatus === 'paid') {
-            // Example: Activate user subscription, send email, etc.
+            // Invitation::create([
+            //     'user_id' => $order->user_id,
+            //     'order_id' => $order->id,
+            // ]);
         }
 
         return response()->json([
@@ -292,6 +339,7 @@ class OrderController extends Controller
                 return [
                     'id' => $order->id,
                     'order_id' => $order->order_id,
+                    'package_id' => $order->package->id,
                     'package_name' => $order->package->name,
                     'amount' => $order->amount,
                     'payment_status' => $order->payment_status,

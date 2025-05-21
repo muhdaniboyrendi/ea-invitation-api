@@ -13,9 +13,9 @@ return new class extends Migration
     {
         Schema::create('invitations', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->foreignId('order_id')->constrained()->onDelete('cascade');
-            $table->foreignId('theme_id')->constrained()->onDelete('restrict');
-            $table->string('unique_code', 20)->unique();
+            $table->foreignId('theme_id')->constrained()->onDelete('set null')->nullable();
             $table->enum('status', ['nonactive', 'published', 'expired'])->default('draft');
             $table->date('expiry_date')->nullable();
             $table->timestamps();

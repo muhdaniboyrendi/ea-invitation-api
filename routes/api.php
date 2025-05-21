@@ -49,6 +49,7 @@ Route::middleware('auth:sanctum')->group(function () {
     });
     Route::prefix('payments')->group(function () {
         Route::post('/create', [OrderController::class, 'createPayment']);
+        Route::put('/update', [OrderController::class, 'updatePayment']);
         Route::get('/orders', [OrderController::class, 'getUserOrders']);
         Route::get('/orders/{orderId}', [OrderController::class, 'getOrderStatus']);
         Route::post('/orders/{orderId}/cancel', [OrderController::class, 'cancelOrder']);
