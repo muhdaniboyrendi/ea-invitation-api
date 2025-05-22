@@ -168,9 +168,17 @@ class ThemeController extends Controller
         ]);
     }
 
-    public function getThemeByOrderId($orderId)
+    public function getThemeByOrderId(Request $request)
     {
-        $order = Order::where('order_id', $orderId)->get();
+        $order = Order::where('order_id', $request->order_id)->first();
+    
+        if (!$order) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Order not found'
+            ], 404);
+        }
+
         if ($order->package_id === 1) {
             $themes = Theme::where('theme_category_id', 1)->with('themeCategory')->get();
         } else {
@@ -179,7 +187,10 @@ class ThemeController extends Controller
 
         return response()->json([
             'status' => true,
-            'data' => $themes
+            'data' => [
+                'order_id' => $order->id,
+                'themes' => $themes
+            ]
         ]);
     }
 }

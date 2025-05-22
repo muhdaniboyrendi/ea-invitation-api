@@ -47,7 +47,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/{id}', [ThemeController::class, 'show']);
         Route::put('/{id}', [ThemeController::class, 'update']);
         Route::delete('/{id}', [ThemeController::class, 'destroy']);
-        Route::get('/{orderId}', [ThemeController::class, 'getThemeByOrderId']);
+        Route::post('/orderthemes', [ThemeController::class, 'getThemeByOrderId']);
     });
     Route::prefix('payments')->group(function () {
         Route::post('/create', [OrderController::class, 'createPayment']);
