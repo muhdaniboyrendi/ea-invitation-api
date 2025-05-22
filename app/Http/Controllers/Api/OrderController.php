@@ -2,8 +2,6 @@
 
 namespace App\Http\Controllers\Api;
 
-use Midtrans\Snap;
-use Midtrans\Config;
 use App\Models\Order;
 use App\Models\Package;
 use App\Models\Invitation;
@@ -280,10 +278,7 @@ class OrderController extends Controller
         ]);
 
         if ($paymentStatus === 'paid') {
-            // Invitation::create([
-            //     'user_id' => $order->user_id,
-            //     'order_id' => $order->id,
-            // ]);
+            // make something
         }
 
         return response()->json([
@@ -351,6 +346,32 @@ class OrderController extends Controller
         return response()->json([
             'status' => true,
             'data' => $orders
+        ]);
+    }
+
+    public function getOrder(string $orderId)
+    {
+        $order = Order::where('order_id', $orderId)->with('package')->first();
+
+        if (!$order) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Order not found'
+            ], 404);
+        }
+
+        return response()->json([
+            'status' => true,
+            'data' => [
+                'id' => $order->id,
+                'order_id' => $order->order_id,
+                'package_id' => $order->package->id,
+                'package_name' => $order->package->name,
+                'amount' => $order->amount,
+                'payment_status' => $order->payment_status,
+                'payment_method' => $order->payment_method,
+                'updated_at' => $order->updated_at
+            ]
         ]);
     }
 

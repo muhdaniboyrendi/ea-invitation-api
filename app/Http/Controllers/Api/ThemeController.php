@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Models\Order;
 use App\Models\Theme;
 use Illuminate\Http\Request;
 use App\Models\ThemeCategory;
@@ -164,6 +165,21 @@ class ThemeController extends Controller
         return response()->json([
             'status' => true,
             'message' => 'Theme has been successfully deleted'
+        ]);
+    }
+
+    public function getThemeByOrderId($orderId)
+    {
+        $order = Order::where('order_id', $orderId)->get();
+        if ($order->package_id === 1) {
+            $themes = Theme::where('theme_category_id', 1)->with('themeCategory')->get();
+        } else {
+            $themes = Theme::with('themeCategory')->get();
+        }
+
+        return response()->json([
+            'status' => true,
+            'data' => $themes
         ]);
     }
 }

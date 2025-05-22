@@ -4,10 +4,11 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ThemeController;
 use App\Http\Controllers\Api\PackageController;
 use App\Http\Controllers\Api\GoogleAuthController;
-use App\Http\Controllers\Api\OrderController;
+use App\Http\Controllers\Api\InvitationController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -46,6 +47,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/{id}', [ThemeController::class, 'show']);
         Route::put('/{id}', [ThemeController::class, 'update']);
         Route::delete('/{id}', [ThemeController::class, 'destroy']);
+        Route::get('/{orderId}', [ThemeController::class, 'getThemeByOrderId']);
     });
     Route::prefix('payments')->group(function () {
         Route::post('/create', [OrderController::class, 'createPayment']);
@@ -54,7 +56,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/orders/{orderId}', [OrderController::class, 'getOrderStatus']);
         Route::post('/orders/{orderId}/cancel', [OrderController::class, 'cancelOrder']);
     });
+    Route::prefix('invitations')->group(function () {
+        Route::post('/', [InvitationController::class, 'store']);
+        Route::put('/{id}', [InvitationController::class, 'update']);
+        Route::get('/{id}', [InvitationController::class, 'show']);
+        Route::delete('/{id}', [InvitationController::class, 'destroy']);
+    });
     Route::get('/orders', [OrderController::class, 'getOrders']);
+    Route::get('/order/{order_id}', [OrderController::class, 'getOrder']);
 });
 
 Route::get('/categories', [ThemeController::class, 'getCategories']);
