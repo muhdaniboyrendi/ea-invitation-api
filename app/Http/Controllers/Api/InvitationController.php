@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Models\Order;
 use App\Models\Invitation;
-use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 
@@ -24,48 +24,83 @@ class InvitationController extends Controller
      */
     public function store(Request $request)
     {   
-        $validator = Validator::make($request->all(), [
-            'order_id' => 'required|exists:orders,order_id',
-            'theme_id' => 'required|exists:themes,theme_id',
-        ]);
+        try {
+            $validator = Validator::make($request->all(), [
+                'order_id' => 'required|exists:orders,id',
+                'theme_id' => 'required|exists:themes,id',
+            ]);
 
-        if ($validator->fails()) {
+            if ($validator->fails()) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $user = Auth::user();
+
+            $order = Order::with('package')->find($request->order_id);
+            if (!$order) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Order not found'
+                ], 404);
+            }
+
+            if ($order->user_id !== $user->id) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Unauthorized access to order'
+                ], 403);
+            }
+
+            if (!$order->package) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Package not found for this order'
+                ], 400);
+            }
+
+            $existingInvitation = Invitation::where('order_id', $request->order_id)->first();
+
+            if ($existingInvitation) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Invitation already exists for this order'
+                ], 409);
+            }
+
+            $expiryDate = match($order->package->id) {
+                1 => now()->addDays(30),
+                2 => now()->addDays(90),
+                3 => now()->addDays(180),
+                4 => now()->addDays(360),
+                default => throw new \Exception('Invalid package ID: ' . $order->package->id)
+            };
+
+            $invitation = Invitation::create([
+                'user_id' => $user->id,
+                'order_id' => $request->order_id,
+                'theme_id' => $request->theme_id,
+                'status' => 'draft',
+                'expiry_date' => $expiryDate,
+            ]);
+
+
             return response()->json([
-                'message' => 'Validation failed',
-                'errors' => $validator->errors()
-            ], 422);
-        }
+                'status' => true,
+                'message' => 'Invitation created successfully',
+                'data' => $invitation->load(['user', 'order', 'theme'])
+            ], 201);
 
-        // $order = Order::where('order_id', $request->order_id)->with('package')->first();
-        $order = Order::where('order_id', $request->order_id)->first();
-        $user = Auth::user();
-
-        if ($order->package->id == 1) {
-            $expiryDate = now()->addDays(30);
-        } else if ($order->package->id == 2) {
-            $expiryDate = now()->addDays(90);
-        } else if ($order->package->id == 3) {
-            $expiryDate = now()->addDays(180);
-        } else if ($order->package->id == 4) {
-            $expiryDate = now()->addDays(360);
-        } else {
+        } catch (\Exception $e) {
             return response()->json([
                 'status' => false,
-                'message' => 'Invalid order ID'
-            ], 400);
+                'message' => 'An error occurred while creating invitation',
+                'error' => config('app.debug') ? $e->getMessage() : 'Internal server error'
+            ], 500);
         }
-
-        $invitation = Invitation::create([
-            'user_id' => $user->id,
-            'order_id' => $request->order_id,
-            'expiry_date' => $expiryDate ?? null,
-        ]);
-
-        return response()->json([
-            'status' => true,
-            'message' => 'ok',
-            'data' => $invitation
-        ], 201);
     }
 
     /**
