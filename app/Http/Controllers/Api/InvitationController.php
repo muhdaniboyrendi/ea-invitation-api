@@ -126,4 +126,69 @@ class InvitationController extends Controller
     {
         //
     }
+
+    public function checkByOrderId(Request $request)
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'order_id' => 'required|exists:orders,order_id',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $user = Auth::user();
+            $order = Order::where('order_id', $request->order_id)->first();
+
+            if (!$order) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Order not found'
+                ], 404);
+            }
+
+            if ($user->id !== $order->user_id) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Unauthorized access to order'
+                ], 403);
+            }
+
+            $invitation = Invitation::find($order->id);
+            
+            if ($invitation) {
+                return response()->json([
+                    'success' => true,
+                    'exists' => true,
+                    'message' => 'Invitation found',
+                    'data' => [
+                        'id' => $invitation->id,
+                        'order_id' => $invitation->order_id,
+                        'created_at' => $invitation->created_at,
+                        'updated_at' => $invitation->updated_at
+                    ]
+                ], 200);
+            } else {
+                return response()->json([
+                    'success' => true,
+                    'exists' => false,
+                    'message' => 'Invitation not found',
+                    'data' => null
+                ], 200);
+            }
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'exists' => false,
+                'message' => 'Error checking invitation',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }

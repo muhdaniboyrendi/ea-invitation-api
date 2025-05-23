@@ -61,6 +61,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/{id}', [InvitationController::class, 'update']);
         Route::get('/{id}', [InvitationController::class, 'show']);
         Route::delete('/{id}', [InvitationController::class, 'destroy']);
+        Route::post('/check', [InvitationController::class, 'checkByOrderId']);
     });
     Route::get('/orders', [OrderController::class, 'getOrders']);
     Route::get('/order/{order_id}', [OrderController::class, 'getOrder']);
