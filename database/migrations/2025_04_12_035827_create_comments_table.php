@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('comments', function (Blueprint $table) {
             $table->id();
             $table->foreignId('invitation_id')->constrained()->onDelete('cascade');
-            $table->string('name', 100);
+            $table->string('name', 50);
             $table->text('message');
             $table->boolean('is_approved')->default(true);
             $table->timestamps();

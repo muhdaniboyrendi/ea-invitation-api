@@ -6,25 +6,18 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class Event extends Model
+class GroomInfo extends Model
 {
     use HasFactory;
 
     protected $fillable = [
         'invitation_id',
-        'name',
-        'venue',
-        'date',
-        'time_start',
-        'time_end',
-        'address',
-        'maps_link',
-    ];
-
-    protected $casts = [
-        'date' => 'date',
-        'time_start' => 'time',
-        'time_end' => 'time',
+        'groom_fullname',
+        'groom_callname',
+        'groom_father',
+        'groom_mother',
+        'groom_instagram',
+        'groom_photo',
     ];
 
     public function invitation(): BelongsTo

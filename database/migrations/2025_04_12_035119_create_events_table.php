@@ -14,13 +14,14 @@ return new class extends Migration
         Schema::create('events', function (Blueprint $table) {
             $table->id();
             $table->foreignId('invitation_id')->constrained()->onDelete('cascade');
-            $table->enum('type', ['akad', 'reception']);
+            $table->string('name');
             $table->string('venue');
             $table->date('date');
             $table->time('time_start');
             $table->time('time_end')->nullable();
             $table->text('address')->nullable();
-            $table->text('maps_link')->nullable();
+            $table->text('maps_url')->nullable();
+            $table->text('maps_embed_url')->nullable();
             $table->timestamps();
         });
     }

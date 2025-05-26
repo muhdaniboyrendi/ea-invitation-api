@@ -17,7 +17,6 @@ return new class extends Migration
             $table->string('title');
             $table->date('date')->nullable();
             $table->text('description')->nullable();
-            $table->integer('order_number')->default(0);
             $table->timestamps();
         });
     }

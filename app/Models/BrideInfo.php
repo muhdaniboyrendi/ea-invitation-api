@@ -6,22 +6,18 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class CoupleInfo extends Model
+class BrideInfo extends Model
 {
     use HasFactory;
 
-    protected $table = 'couple_info';
-
     protected $fillable = [
         'invitation_id',
-        'groom_name',
-        'groom_father',
-        'groom_mother',
-        'groom_instagram',
-        'bride_name',
+        'bride_fullname',
+        'bride_callname',
         'bride_father',
         'bride_mother',
         'bride_instagram',
+        'bride_photo',
     ];
 
     public function invitation(): BelongsTo

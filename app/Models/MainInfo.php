@@ -6,21 +6,16 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class VisitorLog extends Model
+class MainInfo extends Model
 {
     use HasFactory;
 
-    public $timestamps = false;
-
     protected $fillable = [
         'invitation_id',
-        'ip_address',
-        'user_agent',
-        'visited_at',
-    ];
-
-    protected $casts = [
-        'visited_at' => 'datetime',
+        'main_photo',
+        'wedding_date',
+        'wedding_time',
+        'time_zone',
     ];
 
     public function invitation(): BelongsTo

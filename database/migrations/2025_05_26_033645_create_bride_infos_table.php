@@ -11,12 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('visitor_logs', function (Blueprint $table) {
+        Schema::create('bride_infos', function (Blueprint $table) {
             $table->id();
             $table->foreignId('invitation_id')->constrained()->onDelete('cascade');
-            $table->string('ip_address', 45)->nullable();
-            $table->text('user_agent')->nullable();
-            $table->timestamp('visited_at')->useCurrent();
+            $table->string('bride_fullname');
+            $table->string('bride_callname');
+            $table->string('bride_father');
+            $table->string('bride_mother');
+            $table->string('bride_instagram');
+            $table->string('bride_photo');
             $table->timestamps();
         });
     }
@@ -26,6 +29,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('visitor_logs');
+        Schema::dropIfExists('bride_infos');
     }
 };

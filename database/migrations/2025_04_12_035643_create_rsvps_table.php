@@ -15,10 +15,8 @@ return new class extends Migration
             $table->id();
             $table->foreignId('invitation_id')->constrained()->onDelete('cascade');
             $table->foreignId('guest_id')->nullable()->constrained()->onDelete('set null');
-            $table->string('name', 100);
+            $table->string('name', 50);
             $table->enum('attendance', ['attending', 'not_attending', 'pending'])->default('pending');
-            $table->integer('number_of_guests')->default(1);
-            $table->text('message')->nullable();
             $table->timestamps();
         });
     }

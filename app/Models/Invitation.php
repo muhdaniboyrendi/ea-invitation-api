@@ -39,9 +39,19 @@ class Invitation extends Model
         return $this->belongsTo(Theme::class);
     }
 
-    public function coupleInfo(): HasOne
+    public function mainInfo(): HasOne
     {
-        return $this->hasOne(CoupleInfo::class);
+        return $this->hasOne(MainInfo::class);
+    }
+
+    public function groomInfo(): HasOne
+    {
+        return $this->hasOne(GroomInfo::class);
+    }
+
+    public function brideInfo(): HasOne
+    {
+        return $this->hasOne(BrideInfo::class);
     }
 
     public function events(): HasMany
@@ -84,13 +94,13 @@ class Invitation extends Model
         return $this->hasMany(VisitorLog::class);
     }
 
-    public function getAkadEvent()
-    {
-        return $this->events()->where('type', 'akad')->first();
-    }
+    // public function getAkadEvent()
+    // {
+    //     return $this->events()->where('type', 'akad')->first();
+    // }
 
-    public function getReceptionEvent()
-    {
-        return $this->events()->where('type', 'reception')->first();
-    }
+    // public function getReceptionEvent()
+    // {
+    //     return $this->events()->where('type', 'reception')->first();
+    // }
 }
