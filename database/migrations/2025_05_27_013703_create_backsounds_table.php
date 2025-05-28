@@ -11,11 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('comments', function (Blueprint $table) {
+        Schema::create('backsounds', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('invitation_id')->constrained()->onDelete('cascade');
-            $table->string('name', 100);
-            $table->text('message');
+            $table->string('name');
+            $table->string('artist')->nullable();
+            $table->string('file_path');
+            $table->string('thumbnail')->nullable();
             $table->timestamps();
         });
     }
@@ -25,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('comments');
+        Schema::dropIfExists('backsounds');
     }
 };

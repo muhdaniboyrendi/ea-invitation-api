@@ -14,11 +14,6 @@ class Comment extends Model
         'invitation_id',
         'name',
         'message',
-        'is_approved',
-    ];
-
-    protected $casts = [
-        'is_approved' => 'boolean',
     ];
 
     public function invitation(): BelongsTo

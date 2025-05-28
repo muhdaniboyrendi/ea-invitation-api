@@ -15,8 +15,6 @@ class Rsvp extends Model
         'guest_id',
         'name',
         'attendance',
-        'number_of_guests',
-        'message',
     ];
 
     protected $casts = [

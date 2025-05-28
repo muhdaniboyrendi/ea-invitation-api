@@ -89,11 +89,6 @@ class Invitation extends Model
         return $this->hasMany(Comment::class);
     }
 
-    public function visitorLogs(): HasMany
-    {
-        return $this->hasMany(VisitorLog::class);
-    }
-
     // public function getAkadEvent()
     // {
     //     return $this->events()->where('type', 'akad')->first();

@@ -13,7 +13,6 @@ class Gallery extends Model
     protected $fillable = [
         'invitation_id',
         'image_path',
-        'order_number',
     ];
 
     public function invitation(): BelongsTo
