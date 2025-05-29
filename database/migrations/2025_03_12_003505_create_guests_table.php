@@ -15,8 +15,10 @@ return new class extends Migration
             $table->id();
             $table->foreignId('invitation_id')->constrained()->onDelete('cascade');
             $table->string('name');
+            $table->string('slug')->unique()->nullable()->after('name');
             $table->string('phone')->nullable();
             $table->boolean('is_group')->default(false);
+            $table->boolean('is_attending')->default(false);
             $table->timestamps();
         });
     }

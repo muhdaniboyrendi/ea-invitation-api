@@ -12,9 +12,19 @@ class Backsound extends Model
     protected $fillable = [
         'name',
         'artist',
-        'file_path',
+        'audio',
         'thumbnail',
     ];
+
+    public function getAudioUrlAttribute(): ?string
+    {
+        return $this->audio ? asset('storage/' . $this->audio) : null;
+    }
+
+    public function getThumbnailUrlAttribute(): ?string
+    {
+        return $this->thumbnail ? asset('storage/' . $this->thumbnail) : null;
+    }
 
     public function mainInfos()
     {

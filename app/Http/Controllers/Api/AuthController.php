@@ -11,12 +11,6 @@ use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
 {
-    /**
-     * Register a new user
-     * 
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function register(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -28,8 +22,8 @@ class AuthController extends Controller
 
         if ($validator->fails()) {
             return response()->json([
-                'status' => false,
-                'message' => 'Validation error',
+                'status' => 'error',
+                'message' => 'Validation failed',
                 'errors' => $validator->errors()
             ], 422);
         }
@@ -44,7 +38,7 @@ class AuthController extends Controller
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
-            'status' => true,
+            'status' => 'success',
             'message' => 'User registered successfully',
             'data' => [
                 'user' => $user,
@@ -53,12 +47,6 @@ class AuthController extends Controller
         ], 201);
     }
 
-    /**
-     * Login user and create token
-     * 
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function login(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -68,28 +56,27 @@ class AuthController extends Controller
 
         if ($validator->fails()) {
             return response()->json([
-                'status' => false,
-                'message' => 'Validation error',
+                'status' => 'error',
+                'message' => 'Validation failed',
                 'errors' => $validator->errors()
             ], 422);
         }
 
         if (!Auth::attempt($request->only('email', 'password'))) {
             return response()->json([
-                'status' => false,
+                'status' => 'error',
                 'message' => 'Invalid login details'
             ], 401);
         }
 
         $user = User::where('email', $request->email)->firstOrFail();
         
-        // Revoke all existing tokens
         $user->tokens()->delete();
         
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
-            'status' => true,
+            'status' => 'success',
             'message' => 'Login successful',
             'data' => [
                 'user' => $user,
@@ -98,19 +85,13 @@ class AuthController extends Controller
         ], 200);
     }
 
-    /**
-     * Logout user (revoke token)
-     * 
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();
 
         return response()->json([
-            'status' => true,
+            'status' => 'success',
             'message' => 'Successfully logged out'
-        ]);
+        ], 200);
     }
 }

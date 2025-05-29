@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('artist')->nullable();
-            $table->string('file_path');
+            $table->string('audio')->nullable();
             $table->string('thumbnail')->nullable();
             $table->timestamps();
         });

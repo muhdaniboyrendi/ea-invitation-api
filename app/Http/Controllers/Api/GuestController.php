@@ -2,8 +2,12 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
+use App\Models\Guest;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
 
 class GuestController extends Controller
 {
@@ -20,7 +24,60 @@ class GuestController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $user = Auth::user();
+
+        if ($user->id != $request->user_id) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Forbidden: You do not have permission to perform this action.',
+            ], 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'invitation_id' => 'required|exists:invitations,id',
+            'name' => 'required|string|max:255',
+            'phone' => 'nullable|string|max:20',
+            'is_group' => 'boolean',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $validated = $validator->validated();
+
+        try {
+            DB::beginTransaction();
+
+            $guest = Guest::create([
+                'invitation_id' => $validated['invitation_id'],
+                'name' => $validated['name'],
+                'phone' => $validated['phone'],
+                'is_group' => $validated['is_group'] ?? false,
+                'is_attending' => false,
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Guest created successfully',
+                'data' => $guest
+            ], 201);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to create guest',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
     }
 
     /**
@@ -36,7 +93,54 @@ class GuestController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        //
+        $user = Auth::user();
+
+        if ($user->id != $request->user_id) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Forbidden: You do not have permission to perform this action.',
+            ], 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'name' => 'sometimes|required|string|max:255',
+            'phone' => 'sometimes|nullable|string|max:20',
+            'is_group' => 'sometimes|boolean',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $validated = $validator->validated();
+
+        try {
+            DB::beginTransaction();
+
+            $guest = Guest::findOrFail($id);
+            $guest->update($validated);
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Guest updated successfully',
+                'data' => $guest
+            ], 200);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to update guest',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
     }
 
     /**
@@ -44,6 +148,78 @@ class GuestController extends Controller
      */
     public function destroy(string $id)
     {
-        //
+        try {
+            DB::beginTransaction();
+
+            $guest = Guest::findOrFail($id);
+            $guest->delete();
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Guest deleted successfully'
+            ], 200);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to delete guest',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
+    }
+
+    public function getGuestsByInvitationId($invitationId)
+    {
+        $validator = Validator::make(['invitation_id' => $invitationId], [
+            'invitation_id' => 'required|exists:invitations,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $guests = Guest::where('invitation_id', $invitationId)->get();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $guests
+        ], 200);
+    }
+
+    public function getGuestBySlug($slug)
+    {
+        $validator = Validator::make(['slug' => $slug], [
+            'slug' => 'required|string|max:255',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $guest = Guest::where('slug', $slug)->first();
+
+        if (!$guest) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Guest not found'
+            ], 404);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $guest
+        ], 200);
     }
 }
