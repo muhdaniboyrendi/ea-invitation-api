@@ -18,8 +18,11 @@ return new class extends Migration
             $table->string('slug')->unique()->nullable()->after('name');
             $table->string('phone')->nullable();
             $table->boolean('is_group')->default(false);
-            $table->boolean('is_attending')->default(false);
+            $table->enum('attendance_status', ['pending', 'attending', 'not_attending'])->default('pending');
             $table->timestamps();
+
+            $table->index(['invitation_id', 'attendance_status']);
+            $table->index('slug');
         });
     }
 

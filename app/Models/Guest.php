@@ -18,7 +18,7 @@ class Guest extends Model
         'slug',
         'phone',
         'is_group',
-        'is_attending',
+        'attendance_status',
     ];
 
     protected static function boot()
@@ -49,10 +49,5 @@ class Guest extends Model
     public function invitation(): BelongsTo
     {
         return $this->belongsTo(Invitation::class);
-    }
-
-    public function rsvp(): HasOne
-    {
-        return $this->hasOne(Rsvp::class);
     }
 }

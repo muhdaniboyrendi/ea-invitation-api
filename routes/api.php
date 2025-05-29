@@ -29,6 +29,7 @@ Route::prefix('backsounds')->group(function () {
 // Guest
 Route::prefix('guest')->group(function () {
     Route::get('/{slug}', [GuestController::class, 'getGuestBySlug']);
+    Route::put('/rsvp/{slug}', [GuestController::class, 'rsvp']);
 });
 
 Route::get('/themes', [ThemeController::class, 'index']);
@@ -62,6 +63,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/{invitationId}', [GuestController::class, 'getGuestsByInvitationId']);
     });
 
+    // Invitations
+    Route::prefix('invitations')->group(function () {
+        Route::post('/', [InvitationController::class, 'store']);
+        Route::post('/check', [InvitationController::class, 'checkByOrderId']);
+    });
+
     Route::prefix('themes')->group(function () {
         Route::post('/orderthemes', [ThemeController::class, 'getThemeByOrderId']);
     });
@@ -72,13 +79,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/orders/{orderId}', [OrderController::class, 'getOrderStatus']);
         Route::post('/orders/{orderId}/cancel', [OrderController::class, 'cancelOrder']);
     });
-    Route::prefix('invitations')->group(function () {
-        Route::post('/check', [InvitationController::class, 'checkByOrderId']);
-    });
     Route::apiResource('packages', PackageController::class)->except(['index', 'show']);
     Route::apiResource('themes', ThemeController::class)->except(['index', 'getCategories', 'getThemeByOrderId']);
     Route::apiResource('musics', BacksoundController::class)->except(['index', 'show']);
-    Route::apiResource('invitations', InvitationController::class)->except(['index', 'checkByOrderId']);
     Route::apiResource('users', UserController::class);
 
     // auth

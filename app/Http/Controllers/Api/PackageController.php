@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Models\Package;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
@@ -15,13 +16,32 @@ class PackageController extends Controller
      */
     public function index()
     {
-        $packages = Package::all();
+        try {
+            $packages = Package::all();
 
-        return response()->json([
-            'status' => true,
-            'message' => 'ok',
-            'data' => $packages
-        ], 200);
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Packages retrieved successfully',
+                'data' => $packages->map(function ($package) {
+                    return [
+                        'id' => $package->id,
+                        'name' => $package->name,
+                        'price' => $package->price,
+                        'discount' => $package->discount,
+                        'final_price' => $package->final_price,
+                        'features' => $package->features,
+                        'created_at' => $package->created_at,
+                        'updated_at' => $package->updated_at,
+                    ];
+                })
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Error fetching packages: ',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
     }
 
     /**
@@ -29,9 +49,11 @@ class PackageController extends Controller
      */
     public function store(Request $request)
     {
-        if (Auth::user()->role != 'admin') {
+        $user = Auth::user();
+
+        if ($user->role != 'admin') {
             return response()->json([
-                'status' => false,
+                'status' => 'error',
                 'message' => 'Forbidden access'
             ], 403);
         }
@@ -45,18 +67,35 @@ class PackageController extends Controller
 
         if ($validator->fails()) {
             return response()->json([
+                'status' => 'error',
                 'message' => 'Validation failed',
                 'errors' => $validator->errors()
             ], 422);
         }
 
-        $package = Package::create($request->all());
+        $validated = $validator->validated();
 
-        return response()->json([
-            'status' => true,
-            'message' => 'ok',
-            'data' => $package
-        ], 201);
+        try {
+            DB::beginTransaction();
+
+            $package = Package::create($validated);
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Package created successfully',
+                'data' => $package
+            ], 201);
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to create package',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
     }
 
     /**
@@ -64,12 +103,28 @@ class PackageController extends Controller
      */
     public function show(string $id)
     {
-        $package = Package::findOrFail($id);
+        try {
+            $package = Package::findOrFail($id);
 
-        return response()->json([
-            'status' => true,
-            'data' => $package
-        ]);
+            if (!$package) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Package not found'
+                ], 404);
+            }
+    
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Package retrieved successfully',
+                'data' => $package
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to retrieve package',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
     }
 
     /**
@@ -77,6 +132,15 @@ class PackageController extends Controller
      */
     public function update(Request $request, Package $package)
     {
+        $user = Auth::user();
+
+        if ($user->role != 'admin') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Forbidden access'
+            ], 403);
+        }
+
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'price' => 'required|min:0',
@@ -86,14 +150,34 @@ class PackageController extends Controller
 
         if ($validator->fails()) {
             return response()->json([
+                'status' => 'error',
                 'message' => 'Validation failed',
                 'errors' => $validator->errors()
             ], 422);
         }
 
-        $package->update($request->all());
+        try {
+            DB::beginTransaction();
 
-        return response()->json($package);
+            $package->update($request->all());
+
+            DB::commit();
+    
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Package updated successfully',
+                'data' => $package
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to update package',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
+
     }
 
     /**
@@ -101,8 +185,28 @@ class PackageController extends Controller
      */
     public function destroy(Package $package)
     {
-        $package->delete();
+        $user = Auth::user();
 
-        return response()->json(null, 204);
+        if ($user->role != 'admin') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Forbidden access'
+            ], 403);
+        }
+
+        try {
+            $package->delete();
+    
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Package deleted successfully'
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to update package',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
     }
 }

@@ -79,23 +79,8 @@ class Invitation extends Model
         return $this->hasMany(Guest::class);
     }
 
-    public function rsvps(): HasMany
-    {
-        return $this->hasMany(Rsvp::class);
-    }
-
     public function comments(): HasMany
     {
         return $this->hasMany(Comment::class);
     }
-
-    // public function getAkadEvent()
-    // {
-    //     return $this->events()->where('type', 'akad')->first();
-    // }
-
-    // public function getReceptionEvent()
-    // {
-    //     return $this->events()->where('type', 'reception')->first();
-    // }
 }

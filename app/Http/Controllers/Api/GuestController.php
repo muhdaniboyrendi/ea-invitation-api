@@ -58,7 +58,7 @@ class GuestController extends Controller
                 'name' => $validated['name'],
                 'phone' => $validated['phone'],
                 'is_group' => $validated['is_group'] ?? false,
-                'is_attending' => false,
+                'attendance_status' => $validated['is_group'] === true ? 'attending' : 'pending',
             ]);
 
             DB::commit();
@@ -122,7 +122,12 @@ class GuestController extends Controller
             DB::beginTransaction();
 
             $guest = Guest::findOrFail($id);
-            $guest->update($validated);
+            $guest->update([
+                'name' => $validated['name'] ?? $guest->name,
+                'phone' => $validated['phone'] ?? $guest->phone,
+                'is_group' => $validated['is_group'] ?? $guest->is_group,
+                'attendance_status' => $validated['is_group'] === true ? 'attending' : 'pending',
+            ]);
 
             DB::commit();
 
@@ -221,5 +226,55 @@ class GuestController extends Controller
             'status' => 'success',
             'data' => $guest
         ], 200);
+    }
+
+    public function rsvp(Request $request, $slug)
+    {
+        $validator = Validator::make($request->all(), [
+            'attendance_status' => 'required|in:pending,attending,not_attending',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $guest = Guest::where('slug', $slug)->first();
+
+        if (!$guest) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Guest not found'
+            ], 404);
+        }
+
+        $validated = $validator->validated();
+
+        try {
+            DB::beginTransaction();
+
+            $guest->attendance_status = $validated['attendance_status'];
+            $guest->save();
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Attendance status updated successfully',
+                'data' => $guest
+            ], 200);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to update attendance status',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
     }
 }
