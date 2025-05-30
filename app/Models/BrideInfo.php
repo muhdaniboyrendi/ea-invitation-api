@@ -19,6 +19,11 @@ class BrideInfo extends Model
         'bride_photo',
     ];
 
+    public function getBridePhotoUrlAttribute(): ?string
+    {
+        return $this->bride_photo ? asset('storage/' . $this->bride_photo) : null;
+    }
+
     public function invitation(): BelongsTo
     {
         return $this->belongsTo(Invitation::class);

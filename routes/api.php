@@ -1,15 +1,22 @@
 <?php
 
+use App\Models\BrideInfo;
+use App\Models\GroomInfo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\GuestController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ThemeController;
+use App\Http\Controllers\Api\GalleryController;
 use App\Http\Controllers\Api\PackageController;
 use App\Http\Controllers\Api\PaymentController;
+use App\Http\Controllers\Api\GiftInfoController;
+use App\Http\Controllers\Api\MainInfoController;
 use App\Http\Controllers\Api\BacksoundController;
+use App\Http\Controllers\Api\LoveStoryController;
 use App\Http\Controllers\Api\GoogleAuthController;
 use App\Http\Controllers\Api\InvitationController;
 use App\Http\Controllers\Api\ThemeCategoryController;
@@ -58,6 +65,9 @@ Route::prefix('payments')->group(function () {
     Route::post('/account-notification', [PaymentController::class, 'handleAccountNotification']);
 });
 
+// Galleries
+Route::get('galleries/public', [GalleryController::class, 'index']);
+
 Route::middleware('auth:sanctum')->group(function () {
     // Auth
     Route::post('/logout', [AuthController::class, 'logout']);
@@ -96,6 +106,36 @@ Route::middleware('auth:sanctum')->group(function () {
     // Orders
     Route::get('/orders', [OrderController::class, 'getOrders']);
     Route::get('/order/{order_id}', [OrderController::class, 'getOrder']);
+
+    // Events
+    Route::apiResource('events', EventController::class);
+    Route::get('invitations/{id}/events', [EventController::class, 'getByInvitation']);
+    Route::delete('events/bulk-delete', [EventController::class, 'bulkDelete']);
+
+    // Main Info
+    Route::apiResource('main-infos', MainInfoController::class);
+
+    // Groom Info
+    Route::apiResource('grooms', GroomInfo::class);
+
+    // Bride Info
+    Route::apiResource('brides', BrideInfo::class);
+
+    // Love Stories
+    Route::apiResource('love-stories', LoveStoryController::class);
+    Route::get('invitations/{id}/love-stories', [LoveStoryController::class, 'getByInvitation']);
+    Route::get('invitations/{id}/love-stories/timeline', [LoveStoryController::class, 'timeline']);
+    Route::delete('love-stories/bulk-delete', [LoveStoryController::class, 'bulkDelete']);
+    Route::patch('love-stories/update-order', [LoveStoryController::class, 'updateOrder']);
+
+    // Gift Infos
+    Route::apiResource('gift-infos', GiftInfoController::class);
+    Route::post('gift-infos/bulk-update', [GiftInfoController::class, 'bulkUpdate']);
+
+    // Galleris
+    Route::apiResource('galleries', GalleryController::class);
+    Route::delete('galleries/bulk-destroy', [GalleryController::class, 'bulkDestroy']);
+    Route::post('galleries/reorder', [GalleryController::class, 'reorder']);
     
     // ADMIN
     Route::put('/users/admin/{id}', [UserController::class, 'setAdmin']);

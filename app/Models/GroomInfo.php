@@ -19,6 +19,11 @@ class GroomInfo extends Model
         'groom_photo',
     ];
 
+    public function getGroomPhotoUrlAttribute(): ?string
+    {
+        return $this->groom_photo ? asset('storage/' . $this->groom_photo) : null;
+    }
+
     public function invitation(): BelongsTo
     {
         return $this->belongsTo(Invitation::class);
