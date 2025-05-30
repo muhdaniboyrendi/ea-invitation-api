@@ -18,6 +18,9 @@ return new class extends Migration
             $table->foreignId('theme_id')->constrained()->onDelete('set null')->nullable();
             $table->enum('status', ['draft', 'published', 'expired'])->default('draft');
             $table->date('expiry_date')->nullable();
+            $table->string('groom')->nullable();
+            $table->string('bride')->nullable();
+            $table->string('slug')->nullable();
             $table->timestamps();
         });
     }

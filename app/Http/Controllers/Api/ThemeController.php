@@ -17,22 +17,33 @@ class ThemeController extends Controller
      */
     public function index()
     {
-        $themes = Theme::with('themeCategory')->get();
-        
-        return response()->json([
-            'status' => true,
-            'data' => $themes
-        ], 200);
-    }
+        try {
+            $themes = Theme::with('themeCategory')->get();
 
-    public function getCategories()
-    {
-        $categories = ThemeCategory::all();
-        
-        return response()->json([
-            'status' => true,
-            'data' => $categories
-        ]);
+            return response()->json([
+                'status' => true,
+                'message' => 'Themes retrieved successfully',
+                'data' => $themes->map(function ($theme) {
+                    return [
+                        'id' => $theme->id,
+                        'name' => $theme->name,
+                        'theme_category_id' => $theme->theme_category_id,
+                        'link' => $theme->link,
+                        'thumbnail' => $theme->thumbnail,
+                        'thumbnail_url' => $theme->thumbnail_url,
+                        'theme_category' => $theme->themeCategory,
+                        'created_at' => $theme->created_at,
+                        'updated_at' => $theme->updated_at,
+                    ];
+                })
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Error fetching packages: ',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
     }
 
     /**

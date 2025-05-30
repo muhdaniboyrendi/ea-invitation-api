@@ -18,6 +18,9 @@ class Invitation extends Model
         'theme_id',
         'status',
         'expiry_date',
+        'groom',
+        'bride',
+        'slug'
     ];
 
     protected $casts = [

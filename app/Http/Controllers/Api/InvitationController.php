@@ -28,6 +28,8 @@ class InvitationController extends Controller
         $validator = Validator::make($request->all(), [
             'order_id' => 'required|exists:orders,id',
             'theme_id' => 'required|exists:themes,id',
+            'groom' => 'required|string|max:50',
+            'bride' => 'required|string|max:50'
         ]);
 
         if ($validator->fails()) {
@@ -87,6 +89,8 @@ class InvitationController extends Controller
                 'theme_id' => $request->theme_id,
                 'status' => 'draft',
                 'expiry_date' => $expiryDate,
+                'groom' => $request->groom,
+                'bride' => $request->bride,
             ]);
 
             DB::commit();
@@ -180,6 +184,8 @@ class InvitationController extends Controller
                 'data' => [
                     'id' => $invitation->id,
                     'order_id' => $invitation->order_id,
+                    'groom' => $invitation->groom,
+                    'bride' => $invitation->bride,
                     'created_at' => $invitation->created_at,
                     'updated_at' => $invitation->updated_at
                 ]

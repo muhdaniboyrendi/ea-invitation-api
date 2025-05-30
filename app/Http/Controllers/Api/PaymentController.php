@@ -2,141 +2,322 @@
 
 namespace App\Http\Controllers\Api;
 
-use Midtrans\Snap;
-use Midtrans\Config;
 use App\Models\Order;
 use App\Models\Package;
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
 
 class PaymentController extends Controller
 {
-    public function __construct()
-    {
-        Config::$serverKey = env('MIDTRANS_SERVER_KEY');
-        Config::$isProduction = env('MIDTRANS_IS_PRODUCTION', false);
-        Config::$isSanitized = true;
-        Config::$is3ds = true;
-    }
-
     public function createPayment(Request $request)
     {
-        $validated = $request->validate([
-            'user_id' => 'required',
-            'package_id' => 'required',
-            // Add other required fields
+        $validator = Validator::make($request->all(), [
+            'package_id' => 'required|exists:packages,id',
         ]);
 
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Validation Error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $user = Auth::user();
         $package = Package::find($request->package_id);
-
-        $packagePrices = $package->price;
-
-        $amount = $packagePrices;
         
-        // Create an order in your database
+        if (!$package) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Package not found'
+            ], 404);
+        }
+
+        $finalPrice = $package->price;
+        
+        if ($package->discount) {
+            $finalPrice = $package->price - ($package->price * $package->discount / 100);
+        }
+
+        $orderId = 'ORDER-' . Str::uuid()->toString();
+
         $order = Order::create([
-            'user_id' => $validated['user_id'],
-            'package_id' => $validated['package_id'],
-            'amount' => $amount,
-            'status' => 'pending',
-            'order_id' => 'INV-' . time(),
+            'user_id' => $user->id,
+            'package_id' => $package->id,
+            'order_id' => $orderId,
+            'amount' => $finalPrice,
+            'payment_status' => 'pending'
         ]);
 
-        // Set up the transaction details for Midtrans
-        $transaction_details = [
-            'order_id' => $order->order_id,
-            'gross_amount' => $amount
-        ];
+        $grossAmount = (int) $order->amount;
 
-        // Customer details
-        $customer_details = [
-            'first_name' => $request->first_name ?? 'Customer',
-            'email' => $request->email ?? 'customer@example.com',
-            'phone' => $request->phone ?? '08123456789',
-        ];
-
-        // Item details
-        $item_details = [
-            [
-                'id' => $validated['package_id'],
-                'price' => $amount,
-                'quantity' => 1,
-                'name' => 'Paket Undangan ' . $validated['package_id'],
-            ]
-        ];
-
-        // Transaction data
-        $transaction = [
-            'transaction_details' => $transaction_details,
-            'customer_details' => $customer_details,
-            'item_details' => $item_details,
+        $params = [
+            'transaction_details' => [
+                'order_id' => $order->order_id,
+                'gross_amount' => $grossAmount,
+            ],
+            'customer_details' => [
+                'first_name' => $user->name,
+                'email' => $user->email,
+                'phone' => $user->phone ?? '',
+            ],
+            'item_details' => [
+                [
+                    'id' => $package->id,
+                    'price' => $grossAmount,
+                    'quantity' => 1,
+                    'name' => $package->name,
+                ]
+            ],
         ];
 
         try {
-            // Get Snap Payment Page URL
-            $snapToken = Snap::getSnapToken($transaction);
+            $snapData = $this->getSnapTokenWithHttpRequest($params);
             
-            // Update order with snap token
-            $order->update(['snap_token' => $snapToken]);
-            
-            // Return the snap token
-            return response()->json([
-                'status' => 'success',
-                'snap_token' => $snapToken,
-                'order_id' => $order->order_id
+            $order->update([
+                'snap_token' => $snapData['token'],
+                'midtrans_url' => $snapData['redirect_url']
             ]);
-        } catch (\Exception $e) {
+
             return response()->json([
-                'status' => 'error',
-                'message' => $e->getMessage()
+                'status' => true,
+                'message' => 'Order created successfully',
+                'data' => [
+                    'order_id' => $order->order_id,
+                    'amount' => $order->amount,
+                    'snap_token' => $snapData['token'],
+                    'redirect_url' => $snapData['redirect_url']
+                ]
+            ], 201);
+        } catch (\Exception $e) {
+            $order->update(['payment_status' => 'canceled']);
+            
+            return response()->json([
+                'status' => false,
+                'message' => 'Payment gateway error',
+                'error' => $e->getMessage()
             ], 500);
         }
     }
 
-    public function handleNotification(Request $request)
+    public function updatePayment(Request $request)
     {
-        $notif = new \Midtrans\Notification();
-        
-        $transaction = $notif->transaction_status;
-        $type = $notif->payment_type;
-        $order_id = $notif->order_id;
-        $fraud = $notif->fraud_status;
+        $validator = Validator::make($request->all(), [
+            'order_id' => 'required|exists:orders,order_id',
+        ]);
 
-        $order = Order::where('order_id', $order_id)->firstOrFail();
-
-        if ($transaction == 'capture') {
-            if ($type == 'credit_card') {
-                if ($fraud == 'challenge') {
-                    $order->status = 'challenge';
-                } else {
-                    $order->status = 'success';
-                }
-            }
-        } else if ($transaction == 'settlement') {
-            $order->status = 'success';
-        } else if ($transaction == 'pending') {
-            $order->status = 'pending';
-        } else if ($transaction == 'deny') {
-            $order->status = 'denied';
-        } else if ($transaction == 'expire') {
-            $order->status = 'expired';
-        } else if ($transaction == 'cancel') {
-            $order->status = 'canceled';
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Validation Error',
+                'errors' => $validator->errors()
+            ], 422);
         }
 
-        $order->save();
-        
-        return response()->json(['status' => 'success']);
+        $user = Auth::user();
+        $order = Order::where('order_id', $request->order_id)->first();
+
+        if (!$order) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Order not found'
+            ], 404);
+        }
+    
+        if ($order->user_id !== $user->id) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Order successfully updated',
+            'data' => [
+                'order_id' => $order->order_id,
+                'amount' => $order->amount,
+                'snap_token' => $order->snap_token,
+                'redirect_url' => $order->midtrans_url
+            ]
+        ], 200);
     }
 
-    public function getStatus($orderId)
+    private function getSnapTokenWithHttpRequest(array $params)
     {
-        $order = Order::where('order_id', $orderId)->firstOrFail();
+        $isProduction = env('MIDTRANS_IS_PRODUCTION', false);
+        $serverKey = env('MIDTRANS_SERVER_KEY');
         
+        if (empty($serverKey)) {
+            throw new \Exception('Midtrans Server Key is not set');
+        }
+        
+        $baseUrl = $isProduction
+            ? 'https://app.midtrans.com/snap/v1/transactions'
+            : 'https://app.sandbox.midtrans.com/snap/v1/transactions';
+        
+        $client = new \GuzzleHttp\Client();
+        
+        $headers = [
+            'Content-Type' => 'application/json',
+            'Accept' => 'application/json',
+            'Authorization' => 'Basic ' . base64_encode($serverKey . ':')
+        ];
+        
+        $response = $client->post($baseUrl, [
+            'headers' => $headers,
+            'json' => $params
+        ]);
+        
+        $statusCode = $response->getStatusCode();
+        
+        if ($statusCode !== 201) {
+            throw new \Exception('Failed to get Snap Token from Midtrans. Status code: ' . $statusCode);
+        }
+        
+        $responseData = json_decode($response->getBody()->getContents(), true);
+        
+        if (!isset($responseData['token']) || !isset($responseData['redirect_url'])) {
+            throw new \Exception('Invalid response from Midtrans');
+        }
+        
+        return [
+            'token' => $responseData['token'],
+            'redirect_url' => $responseData['redirect_url']
+        ];
+    }
+
+    public function handleNotification(Request $request)
+    {
+        $notificationBody = json_decode($request->getContent(), true);
+        
+        $signatureKey = env('MIDTRANS_SERVER_KEY');
+        $orderId = $notificationBody['order_id'];
+        $statusCode = $notificationBody['status_code'];
+        $grossAmount = $notificationBody['gross_amount'];
+        $serverKey = $signatureKey;
+        $signature = hash('sha512', $orderId . $statusCode . $grossAmount . $serverKey);
+        
+        if ($signature !== $notificationBody['signature_key']) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Invalid signature'
+            ], 403);
+        }
+
+        $order = Order::where('order_id', $orderId)->first();
+
+        if (!$order) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Order not found'
+            ], 404);
+        }
+
+        $transactionStatus = $notificationBody['transaction_status'];
+        $fraudStatus = $notificationBody['fraud_status'] ?? null;
+        $paymentType = $notificationBody['payment_type'] ?? null;
+        $transactionId = $notificationBody['transaction_id'] ?? null;
+
+        if ($transactionStatus == 'capture') {
+            if ($fraudStatus == 'challenge') {
+                $paymentStatus = 'pending';
+            } else if ($fraudStatus == 'accept') {
+                $paymentStatus = 'paid';
+            }
+        } else if ($transactionStatus == 'settlement') {
+            $paymentStatus = 'paid';
+        } else if ($transactionStatus == 'deny') {
+            $paymentStatus = 'canceled';
+        } else if ($transactionStatus == 'cancel' || $transactionStatus == 'expire') {
+            $paymentStatus = $transactionStatus == 'cancel' ? 'canceled' : 'expired';
+        } else if ($transactionStatus == 'pending') {
+            $paymentStatus = 'pending';
+        }
+
+        $order->update([
+            'payment_status' => $paymentStatus,
+            'payment_method' => $paymentType,
+            'midtrans_transaction_id' => $transactionId
+        ]);
+
+        if ($paymentStatus === 'paid') {
+            // make something
+        }
+
         return response()->json([
-            'status' => $order->status,
-            'package_id' => $order->package_id,
-            'amount' => $order->amount
+            'status' => true,
+            'message' => 'Notification processed'
+        ], 200);
+    }
+
+    /**
+     * Handle recurring notification from Midtrans
+     * 
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function handleRecurringNotification(Request $request)
+    {
+        $notificationBody = json_decode($request->getContent(), true);
+        
+        // Verifikasi signature seperti di handleNotification
+        $signatureKey = env('MIDTRANS_SERVER_KEY');
+        $orderId = $notificationBody['order_id'];
+        $statusCode = $notificationBody['status_code'];
+        $grossAmount = $notificationBody['gross_amount'];
+        $serverKey = $signatureKey;
+        $signature = hash('sha512', $orderId . $statusCode . $grossAmount . $serverKey);
+        
+        if ($signature !== $notificationBody['signature_key']) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Invalid signature'
+            ], 403);
+        }
+
+        // Logika untuk menangani recurring payment
+        // Mirip dengan handleNotification tetapi untuk subscription/recurring
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Recurring notification processed'
+        ]);
+    }
+
+    /**
+     * Handle account notification from Midtrans
+     * 
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function handleAccountNotification(Request $request)
+    {
+        $notificationBody = json_decode($request->getContent(), true);
+        
+        // Verifikasi signature
+        $signatureKey = env('MIDTRANS_SERVER_KEY');
+        $orderId = $notificationBody['order_id'];
+        $statusCode = $notificationBody['status_code'];
+        $grossAmount = $notificationBody['gross_amount'];
+        $serverKey = $signatureKey;
+        $signature = hash('sha512', $orderId . $statusCode . $grossAmount . $serverKey);
+        
+        if ($signature !== $notificationBody['signature_key']) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Invalid signature'
+            ], 403);
+        }
+
+        // Logika untuk menangani notifikasi akun pembayaran
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Account notification processed'
         ]);
     }
 }

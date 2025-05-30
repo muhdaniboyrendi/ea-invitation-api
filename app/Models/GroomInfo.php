@@ -13,7 +13,6 @@ class GroomInfo extends Model
     protected $fillable = [
         'invitation_id',
         'groom_fullname',
-        'groom_callname',
         'groom_father',
         'groom_mother',
         'groom_instagram',

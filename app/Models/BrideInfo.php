@@ -13,7 +13,6 @@ class BrideInfo extends Model
     protected $fillable = [
         'invitation_id',
         'bride_fullname',
-        'bride_callname',
         'bride_father',
         'bride_mother',
         'bride_instagram',
