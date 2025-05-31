@@ -20,7 +20,7 @@ class BacksoundController extends Controller
     {
         try {
             $backsounds = Backsound::all();
-
+            
             return response()->json([
                 'status' => 'success',
                 'message' => 'Backsounds retrieved successfully',
