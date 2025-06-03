@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\EventController;
+use App\Http\Controllers\Api\GroomController;
 use App\Http\Controllers\Api\GuestController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ThemeController;
@@ -16,6 +17,7 @@ use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\GiftInfoController;
 use App\Http\Controllers\Api\MainInfoController;
 use App\Http\Controllers\Api\BacksoundController;
+use App\Http\Controllers\Api\BrideController;
 use App\Http\Controllers\Api\LoveStoryController;
 use App\Http\Controllers\Api\GoogleAuthController;
 use App\Http\Controllers\Api\InvitationController;
@@ -68,6 +70,9 @@ Route::prefix('payments')->group(function () {
 // Main Infos
 Route::get('/main-infos/{invitationId}', [MainInfoController::class, 'show']);
 
+// Groom Infos
+Route::get('/grooms/{invitationId}', [GroomController::class, 'show']);
+
 // Galleries
 Route::get('galleries/public', [GalleryController::class, 'index']);
 
@@ -119,10 +124,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('main-infos', MainInfoController::class)->except(['show']);
 
     // Groom Info
-    Route::apiResource('grooms', GroomInfo::class);
+    Route::apiResource('grooms', GroomController::class)->except(['show']);
 
     // Bride Info
-    Route::apiResource('brides', BrideInfo::class);
+    Route::apiResource('brides', BrideController::class);
 
     // Love Stories
     Route::apiResource('love-stories', LoveStoryController::class);

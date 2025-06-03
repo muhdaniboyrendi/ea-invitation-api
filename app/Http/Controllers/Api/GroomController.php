@@ -26,9 +26,8 @@ class GroomController extends Controller
      */
     public function store(Request $request)
     {
-        $user = Auth::user();
-
         $validator = Validator::make($request->all(), [
+            'invitation_id' => 'required|exists:invitations,id',
             'groom_fullname' => 'required|string|max:255',
             'groom_father' => 'required|string|max:255',
             'groom_mother' => 'required|string|max:255',
@@ -48,7 +47,12 @@ class GroomController extends Controller
 
         try {
             DB::beginTransaction();
-    
+
+            $existingGroomInfo = GroomInfo::where('invitation_id', $validated['invitation_id'])->first();
+            $isUpdate = $existingGroomInfo !== null;
+
+            $oldGroomPhoto = $isUpdate ? $existingGroomInfo->groom_photo : null;
+
             if ($request->hasFile('groom_photo')) {
                 $photoFile = $request->file('groom_photo');
                 $photoExtension = $photoFile->getClientOriginalExtension();
@@ -56,34 +60,56 @@ class GroomController extends Controller
                 $photoFileName = $photoUuid . '.' . $photoExtension;
                 
                 $validated['groom_photo'] = $photoFile->storeAs('groom/photos', $photoFileName, 'public');
+            } elseif ($isUpdate) {
+                $validated['groom_photo'] = $oldGroomPhoto;
             }
 
-            $groomInfo = GroomInfo::create([
-                'groom_fullname' => $validated['groom_fullname'],
-                'groom_father' => $validated['groom_father'],
-                'groom_mother' => $validated['groom_mother'],
-                'groom_instagram' => $validated['groom_instagram'] ?? null,
-                'groom_photo' => $validated['groom_photo'] ?? null,
-            ]);
+            if ($isUpdate) {
+                $existingGroomInfo->update([
+                    'groom_fullname' => $validated['groom_fullname'],
+                    'groom_father' => $validated['groom_father'],
+                    'groom_mother' => $validated['groom_mother'],
+                    'groom_instagram' => $validated['groom_instagram'] ?? null,
+                    'groom_photo' => $validated['groom_photo'] ?? null,
+                ]);
+
+                $groomInfo = $existingGroomInfo;
+
+                if ($request->hasFile('groom_photo') && $oldGroomPhoto && Storage::disk('public')->exists($oldGroomPhoto)) {
+                    Storage::disk('public')->delete($oldGroomPhoto);
+                }
+
+            } else {
+                $groomInfo = GroomInfo::create([
+                    'invitation_id' => $validated['invitation_id'],
+                    'groom_fullname' => $validated['groom_fullname'],
+                    'groom_father' => $validated['groom_father'],
+                    'groom_mother' => $validated['groom_mother'],
+                    'groom_instagram' => $validated['groom_instagram'] ?? null,
+                    'groom_photo' => $validated['groom_photo'] ?? null,
+                ]);
+            }
 
             DB::commit();
-    
+
+            $groomInfo->load(['invitation']);
+
             return response()->json([
                 'status' => 'success',
-                'message' => 'Groom info added successfully',
+                'message' => $isUpdate ? 'Groom info updated successfully' : 'Groom info created successfully',
                 'data' => $groomInfo,
-            ], 201);
-    
+            ], $isUpdate ? 200 : 201);
+
         } catch (\Exception $e) {
             DB::rollBack();
             
             if (isset($validated['groom_photo']) && Storage::disk('public')->exists($validated['groom_photo'])) {
                 Storage::disk('public')->delete($validated['groom_photo']);
             }
-    
+
             return response()->json([
                 'status' => 'error',
-                'message' => 'Failed to add groom info. Please try again.',
+                'message' => $isUpdate ? 'Failed to update groom info. Please try again.' : 'Failed to create groom info. Please try again.',
                 'error' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
@@ -92,10 +118,10 @@ class GroomController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show($invitationId)
     {
         try {
-            $groomInfo = GroomInfo::find($id);
+            $groomInfo = GroomInfo::where('invitation_id', $invitationId)->first();
 
             if (!$groomInfo) {
                 return response()->json([
