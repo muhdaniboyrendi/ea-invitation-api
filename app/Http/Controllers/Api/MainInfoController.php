@@ -46,8 +46,6 @@ class MainInfoController extends Controller
      */
     public function store(Request $request)
     {
-        $user = Auth::user();
-
         $validator = Validator::make($request->all(), [
             'invitation_id' => 'required|exists:invitations,id',
             'backsound_id' => 'nullable|exists:backsounds,id',
@@ -71,7 +69,12 @@ class MainInfoController extends Controller
         try {
             DB::beginTransaction();
 
-            // Handle main photo upload
+            $existingMainInfo = MainInfo::where('invitation_id', $validated['invitation_id'])->first();
+            $isUpdate = $existingMainInfo !== null;
+
+            $oldMainPhoto = $isUpdate ? $existingMainInfo->main_photo : null;
+            $oldCustomBacksound = $isUpdate ? $existingMainInfo->custom_backsound : null;
+
             if ($request->hasFile('main_photo')) {
                 $photoFile = $request->file('main_photo');
                 $photoExtension = $photoFile->getClientOriginalExtension();
@@ -79,9 +82,10 @@ class MainInfoController extends Controller
                 $photoFileName = $photoUuid . '.' . $photoExtension;
                 
                 $validated['main_photo'] = $photoFile->storeAs('main/photos', $photoFileName, 'public');
+            } elseif ($isUpdate) {
+                $validated['main_photo'] = $oldMainPhoto;
             }
 
-            // Handle custom backsound upload
             if ($request->hasFile('custom_backsound')) {
                 $backsoundFile = $request->file('custom_backsound');
                 $backsoundExtension = $backsoundFile->getClientOriginalExtension();
@@ -89,17 +93,40 @@ class MainInfoController extends Controller
                 $backsoundFileName = $backsoundUuid . '.' . $backsoundExtension;
                 
                 $validated['custom_backsound'] = $backsoundFile->storeAs('main/backsounds', $backsoundFileName, 'public');
+            } elseif ($isUpdate) {
+                $validated['custom_backsound'] = $oldCustomBacksound;
             }
 
-            $mainInfo = MainInfo::create([
-                'invitation_id' => $validated['invitation_id'],
-                'backsound_id' => $validated['backsound_id'] ?? null,
-                'main_photo' => $validated['main_photo'] ?? null,
-                'wedding_date' => $validated['wedding_date'],
-                'wedding_time' => $validated['wedding_time'],
-                'time_zone' => $validated['time_zone'],
-                'custom_backsound' => $validated['custom_backsound'] ?? null,
-            ]);
+            if ($isUpdate) {
+                $existingMainInfo->update([
+                    'backsound_id' => $validated['backsound_id'] ?? null,
+                    'main_photo' => $validated['main_photo'] ?? null,
+                    'wedding_date' => $validated['wedding_date'],
+                    'wedding_time' => $validated['wedding_time'],
+                    'time_zone' => $validated['time_zone'],
+                    'custom_backsound' => $validated['custom_backsound'] ?? null,
+                ]);
+
+                $mainInfo = $existingMainInfo;
+
+                if ($request->hasFile('main_photo') && $oldMainPhoto && Storage::disk('public')->exists($oldMainPhoto)) {
+                    Storage::disk('public')->delete($oldMainPhoto);
+                }
+                if ($request->hasFile('custom_backsound') && $oldCustomBacksound && Storage::disk('public')->exists($oldCustomBacksound)) {
+                    Storage::disk('public')->delete($oldCustomBacksound);
+                }
+
+            } else {
+                $mainInfo = MainInfo::create([
+                    'invitation_id' => $validated['invitation_id'],
+                    'backsound_id' => $validated['backsound_id'] ?? null,
+                    'main_photo' => $validated['main_photo'] ?? null,
+                    'wedding_date' => $validated['wedding_date'],
+                    'wedding_time' => $validated['wedding_time'],
+                    'time_zone' => $validated['time_zone'],
+                    'custom_backsound' => $validated['custom_backsound'] ?? null,
+                ]);
+            }
 
             DB::commit();
 
@@ -107,14 +134,13 @@ class MainInfoController extends Controller
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Main info added successfully',
+                'message' => $isUpdate ? 'Main info updated successfully' : 'Main info created successfully',
                 'data' => $mainInfo,
-            ], 201);
+            ], $isUpdate ? 200 : 201);
 
         } catch (\Exception $e) {
             DB::rollBack();
             
-            // Clean up uploaded files if error occurs
             if (isset($validated['main_photo']) && Storage::disk('public')->exists($validated['main_photo'])) {
                 Storage::disk('public')->delete($validated['main_photo']);
             }
@@ -124,7 +150,7 @@ class MainInfoController extends Controller
 
             return response()->json([
                 'status' => 'error',
-                'message' => 'Failed to add main info. Please try again.',
+                'message' => $isUpdate ? 'Failed to update main info. Please try again.' : 'Failed to create main info. Please try again.',
                 'error' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
@@ -133,15 +159,12 @@ class MainInfoController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show($id)
+    public function show($invitationId)
     {
         try {
-            $user = Auth::user();
-            $mainInfo = MainInfo::with(['invitation', 'backsound'])
-                ->whereHas('invitation', function($query) use ($user) {
-                    $query->where('user_id', $user->id);
-                })
-                ->findOrFail($id);
+            $mainInfo = MainInfo::with(['backsound'])
+                ->where('invitation_id', $invitationId)
+                ->first();
 
             return response()->json([
                 'status' => 'success',

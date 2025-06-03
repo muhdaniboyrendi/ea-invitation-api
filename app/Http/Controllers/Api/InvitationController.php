@@ -34,7 +34,7 @@ class InvitationController extends Controller
 
         if ($validator->fails()) {
             return response()->json([
-                'status' => false,
+                'status' => 'error',
                 'message' => 'Validation failed',
                 'errors' => $validator->errors()
             ], 422);
@@ -45,21 +45,21 @@ class InvitationController extends Controller
         $order = Order::with('package')->find($request->order_id);
         if (!$order) {
             return response()->json([
-                'status' => false,
+                'status' => 'error',
                 'message' => 'Order not found'
             ], 404);
         }
 
         if ($order->user_id !== $user->id) {
             return response()->json([
-                'status' => false,
+                'status' => 'error',
                 'message' => 'Forbidden: You do not have permission to create an invitation for this order'
             ], 403);
         }
 
         if (!$order->package) {
             return response()->json([
-                'status' => false,
+                'status' => 'error',
                 'message' => 'Package not found for this order'
             ], 400);
         }
@@ -68,7 +68,7 @@ class InvitationController extends Controller
 
         if ($existingInvitation) {
             return response()->json([
-                'status' => false,
+                'status' => 'error',
                 'message' => 'Invitation already exists for this order'
             ], 409);
         }
@@ -144,7 +144,7 @@ class InvitationController extends Controller
 
         if ($validator->fails()) {
             return response()->json([
-                'status' => false,
+                'status' => 'error',
                 'message' => 'Validation failed',
                 'errors' => $validator->errors()
             ], 422);
@@ -155,26 +155,25 @@ class InvitationController extends Controller
 
         if (!$order) {
             return response()->json([
-                'status' => false,
+                'status' => 'error',
                 'message' => 'Order not found'
             ], 404);
         }
 
         if ($user->id !== $order->user_id) {
             return response()->json([
-                'status' => false,
+                'status' => 'error',
                 'message' => 'Forbidden: You do not have permission to check this order'
             ], 403);
         }
 
         try {
-            $invitation = Invitation::find($order->id);
+            $invitation = Invitation::where('order_id', $order->id)->with('order')->first();
 
             if (!$invitation) {
                 return response()->json([
-                    'status' => 'success',
+                    'status' => 'error',
                     'message' => 'Invitation not found for this order',
-                    'data' => null
                 ], 404);
             }
             
@@ -186,6 +185,7 @@ class InvitationController extends Controller
                     'order_id' => $invitation->order_id,
                     'groom' => $invitation->groom,
                     'bride' => $invitation->bride,
+                    'package_id' => $invitation->order->package_id,
                     'created_at' => $invitation->created_at,
                     'updated_at' => $invitation->updated_at
                 ]

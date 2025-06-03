@@ -65,6 +65,9 @@ Route::prefix('payments')->group(function () {
     Route::post('/account-notification', [PaymentController::class, 'handleAccountNotification']);
 });
 
+// Main Infos
+Route::get('/main-infos/{invitationId}', [MainInfoController::class, 'show']);
+
 // Galleries
 Route::get('galleries/public', [GalleryController::class, 'index']);
 
@@ -113,7 +116,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('events/bulk-delete', [EventController::class, 'bulkDelete']);
 
     // Main Info
-    Route::apiResource('main-infos', MainInfoController::class);
+    Route::apiResource('main-infos', MainInfoController::class)->except(['show']);
 
     // Groom Info
     Route::apiResource('grooms', GroomInfo::class);
