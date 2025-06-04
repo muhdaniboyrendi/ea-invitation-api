@@ -61,13 +61,14 @@ class EventController extends Controller
     }
 
     /**
-     * Store multiple events at once.
+     * Store multiple events at once (with update/create logic).
      */
     private function storeMultiple(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'invitation_id' => 'required|exists:invitations,id',
             'events' => 'required|array|min:1|max:10',
+            'events.*.id' => 'nullable|integer|exists:events,id',
             'events.*.name' => 'required|string|max:255',
             'events.*.venue' => 'required|string|max:255',
             'events.*.date' => 'required|date|after_or_equal:today',
@@ -93,10 +94,12 @@ class EventController extends Controller
         try {
             DB::beginTransaction();
 
-            $createdEvents = [];
+            $processedEvents = [];
+            $createdCount = 0;
+            $updatedCount = 0;
             
             foreach ($validated['events'] as $eventData) {
-                $event = Event::create([
+                $eventAttributes = [
                     'invitation_id' => $validated['invitation_id'],
                     'name' => $eventData['name'],
                     'venue' => $eventData['venue'],
@@ -106,20 +109,58 @@ class EventController extends Controller
                     'address' => $eventData['address'] ?? null,
                     'maps_url' => $eventData['maps_url'] ?? null,
                     'maps_embed_url' => $eventData['maps_embed_url'] ?? null,
-                ]);
+                ];
 
-                $createdEvents[] = $event;
+                // Check if event has ID (update) or not (create)
+                if (isset($eventData['id']) && !empty($eventData['id'])) {
+                    // Update existing event
+                    $event = Event::find($eventData['id']);
+                    
+                    if ($event) {
+                        // Verify that the event belongs to the same invitation
+                        if ($event->invitation_id != $validated['invitation_id']) {
+                            throw new \Exception("Event ID {$eventData['id']} does not belong to invitation {$validated['invitation_id']}");
+                        }
+                        
+                        $event->update($eventAttributes);
+                        $processedEvents[] = $event;
+                        $updatedCount++;
+                    } else {
+                        throw new \Exception("Event with ID {$eventData['id']} not found");
+                    }
+                } else {
+                    // Create new event
+                    $event = Event::create($eventAttributes);
+                    $processedEvents[] = $event;
+                    $createdCount++;
+                }
             }
 
             DB::commit();
 
             // Load relationships for response
-            $events = Event::with('invitation')->whereIn('id', collect($createdEvents)->pluck('id'))->get();
+            $eventIds = collect($processedEvents)->pluck('id');
+            $events = Event::with('invitation')->whereIn('id', $eventIds)->get();
+
+            // Generate response message
+            $messages = [];
+            if ($createdCount > 0) {
+                $messages[] = "{$createdCount} event(s) created";
+            }
+            if ($updatedCount > 0) {
+                $messages[] = "{$updatedCount} event(s) updated";
+            }
+            $message = implode(' and ', $messages) . ' successfully';
 
             return response()->json([
                 'status' => 'success',
-                'message' => count($createdEvents) . ' events added successfully',
+                'message' => $message,
                 'data' => $events,
+                'summary' => [
+                    'created' => $createdCount,
+                    'updated' => $updatedCount,
+                    'total' => count($processedEvents)
+                ]
             ], 201);
 
         } catch (\Exception $e) {
@@ -127,18 +168,19 @@ class EventController extends Controller
 
             return response()->json([
                 'status' => 'error',
-                'message' => 'Failed to add events. Please try again.',
+                'message' => 'Failed to process events. Please try again.',
                 'error' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
     }
 
     /**
-     * Store a single event.
+     * Store a single event (with update/create logic).
      */
     private function storeSingle(Request $request)
     {
         $validator = Validator::make($request->all(), [
+            'id' => 'nullable|integer|exists:events,id',
             'invitation_id' => 'required|exists:invitations,id',
             'name' => 'required|string|max:255',
             'venue' => 'required|string|max:255',
@@ -165,7 +207,7 @@ class EventController extends Controller
         try {
             DB::beginTransaction();
 
-            $event = Event::create([
+            $eventAttributes = [
                 'invitation_id' => $validated['invitation_id'],
                 'name' => $validated['name'],
                 'venue' => $validated['venue'],
@@ -175,7 +217,30 @@ class EventController extends Controller
                 'address' => $validated['address'] ?? null,
                 'maps_url' => $validated['maps_url'] ?? null,
                 'maps_embed_url' => $validated['maps_embed_url'] ?? null,
-            ]);
+            ];
+
+            $isUpdate = false;
+
+            // Check if event has ID (update) or not (create)
+            if (isset($validated['id']) && !empty($validated['id'])) {
+                // Update existing event
+                $event = Event::find($validated['id']);
+                
+                if ($event) {
+                    // Verify that the event belongs to the same invitation
+                    if ($event->invitation_id != $validated['invitation_id']) {
+                        throw new \Exception("Event ID {$validated['id']} does not belong to invitation {$validated['invitation_id']}");
+                    }
+                    
+                    $event->update($eventAttributes);
+                    $isUpdate = true;
+                } else {
+                    throw new \Exception("Event with ID {$validated['id']} not found");
+                }
+            } else {
+                // Create new event
+                $event = Event::create($eventAttributes);
+            }
 
             DB::commit();
 
@@ -183,16 +248,17 @@ class EventController extends Controller
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Event added successfully',
+                'message' => $isUpdate ? 'Event updated successfully' : 'Event created successfully',
                 'data' => $event,
-            ], 201);
+                'action' => $isUpdate ? 'updated' : 'created'
+            ], $isUpdate ? 200 : 201);
 
         } catch (\Exception $e) {
             DB::rollBack();
 
             return response()->json([
                 'status' => 'error',
-                'message' => 'Failed to add event. Please try again.',
+                'message' => $isUpdate ? 'Failed to update event. Please try again.' : 'Failed to create event. Please try again.',
                 'error' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }

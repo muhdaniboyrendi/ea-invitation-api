@@ -24,8 +24,8 @@ class Event extends Model
 
     protected $casts = [
         'date' => 'date',
-        'time_start' => 'time',
-        'time_end' => 'time',
+        'time_start' => 'datetime:H:i',
+        'time_end' => 'datetime:H:i',
     ];
 
     protected $appends = [

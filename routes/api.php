@@ -77,7 +77,7 @@ Route::get('/grooms/{invitationId}', [GroomController::class, 'show']);
 Route::get('/brides/{invitationId}', [BrideController::class, 'show']);
 
 // Events
-Route::get('invitations/{id}/events', [EventController::class, 'getEventsByInvitation']);
+Route::get('invitations/{invitationId}/events', [EventController::class, 'getEventsByInvitation']);
 
 // Galleries
 Route::get('galleries/public', [GalleryController::class, 'index']);
