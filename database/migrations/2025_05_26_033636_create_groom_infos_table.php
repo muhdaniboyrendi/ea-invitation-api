@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('groom_father');
             $table->string('groom_mother');
             $table->string('groom_instagram');
-            $table->string('groom_photo');
+            $table->string('groom_photo')->nullable();
             $table->timestamps();
         });
     }

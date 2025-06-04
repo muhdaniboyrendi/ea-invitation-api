@@ -16,6 +16,7 @@ class LoveStory extends Model
         'title',
         'date',
         'description',
+        'thumbnail',
     ];
 
     protected $casts = [

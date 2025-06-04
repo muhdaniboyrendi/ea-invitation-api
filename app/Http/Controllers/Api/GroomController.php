@@ -55,38 +55,41 @@ class GroomController extends Controller
 
             if ($request->hasFile('groom_photo')) {
                 $photoFile = $request->file('groom_photo');
-                $photoExtension = $photoFile->getClientOriginalExtension();
-                $photoUuid = Str::uuid();
-                $photoFileName = $photoUuid . '.' . $photoExtension;
                 
-                $validated['groom_photo'] = $photoFile->storeAs('groom/photos', $photoFileName, 'public');
+                if ($photoFile->isValid()) {
+                    $photoExtension = $photoFile->getClientOriginalExtension();
+                    $photoUuid = Str::uuid();
+                    $photoFileName = $photoUuid . '.' . $photoExtension;
+                    
+                    $validated['groom_photo'] = $photoFile->storeAs('groom/photos', $photoFileName, 'public');
+                } else {
+                    throw new \Exception('Invalid photo file uploaded');
+                }
             } elseif ($isUpdate) {
                 $validated['groom_photo'] = $oldGroomPhoto;
+            } else {
+                $validated['groom_photo'] = null;
             }
 
-            if ($isUpdate) {
-                $existingGroomInfo->update([
-                    'groom_fullname' => $validated['groom_fullname'],
-                    'groom_father' => $validated['groom_father'],
-                    'groom_mother' => $validated['groom_mother'],
-                    'groom_instagram' => $validated['groom_instagram'] ?? null,
-                    'groom_photo' => $validated['groom_photo'] ?? null,
-                ]);
+            $groomData = [
+                'groom_fullname' => $validated['groom_fullname'],
+                'groom_father' => $validated['groom_father'],
+                'groom_mother' => $validated['groom_mother'],
+                'groom_instagram' => $validated['groom_instagram'] ?? null,
+                'groom_photo' => $validated['groom_photo'],
+            ];
 
+            if ($isUpdate) {
+                $existingGroomInfo->update($groomData);
                 $groomInfo = $existingGroomInfo;
 
                 if ($request->hasFile('groom_photo') && $oldGroomPhoto && Storage::disk('public')->exists($oldGroomPhoto)) {
                     Storage::disk('public')->delete($oldGroomPhoto);
                 }
-
             } else {
                 $groomInfo = GroomInfo::create([
                     'invitation_id' => $validated['invitation_id'],
-                    'groom_fullname' => $validated['groom_fullname'],
-                    'groom_father' => $validated['groom_father'],
-                    'groom_mother' => $validated['groom_mother'],
-                    'groom_instagram' => $validated['groom_instagram'] ?? null,
-                    'groom_photo' => $validated['groom_photo'] ?? null,
+                    ...$groomData
                 ]);
             }
 

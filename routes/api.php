@@ -73,6 +73,12 @@ Route::get('/main-infos/{invitationId}', [MainInfoController::class, 'show']);
 // Groom Infos
 Route::get('/grooms/{invitationId}', [GroomController::class, 'show']);
 
+// Bride Infos
+Route::get('/brides/{invitationId}', [BrideController::class, 'show']);
+
+// Events
+Route::get('invitations/{id}/events', [EventController::class, 'getEventsByInvitation']);
+
 // Galleries
 Route::get('galleries/public', [GalleryController::class, 'index']);
 
@@ -117,7 +123,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Events
     Route::apiResource('events', EventController::class);
-    Route::get('invitations/{id}/events', [EventController::class, 'getByInvitation']);
     Route::delete('events/bulk-delete', [EventController::class, 'bulkDelete']);
 
     // Main Info
@@ -127,7 +132,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('grooms', GroomController::class)->except(['show']);
 
     // Bride Info
-    Route::apiResource('brides', BrideController::class);
+    Route::apiResource('brides', BrideController::class)->except(['show']);
 
     // Love Stories
     Route::apiResource('love-stories', LoveStoryController::class);

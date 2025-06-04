@@ -26,9 +26,8 @@ class BrideController extends Controller
      */
     public function store(Request $request)
     {
-        $user = Auth::user();
-
         $validator = Validator::make($request->all(), [
+            'invitation_id' => 'required|exists:invitations,id',
             'bride_fullname' => 'required|string|max:255',
             'bride_father' => 'required|string|max:255',
             'bride_mother' => 'required|string|max:255',
@@ -48,42 +47,72 @@ class BrideController extends Controller
 
         try {
             DB::beginTransaction();
-    
+
+            $existingBrideInfo = BrideInfo::where('invitation_id', $validated['invitation_id'])->first();
+            $isUpdate = $existingBrideInfo !== null;
+
+            $oldBridePhoto = $isUpdate ? $existingBrideInfo->bride_photo : null;
+
             if ($request->hasFile('bride_photo')) {
                 $photoFile = $request->file('bride_photo');
-                $photoExtension = $photoFile->getClientOriginalExtension();
-                $photoUuid = Str::uuid();
-                $photoFileName = $photoUuid . '.' . $photoExtension;
                 
-                $validated['bride_photo'] = $photoFile->storeAs('bride/photos', $photoFileName, 'public');
+                if ($photoFile->isValid()) {
+                    $photoExtension = $photoFile->getClientOriginalExtension();
+                    $photoUuid = Str::uuid();
+                    $photoFileName = $photoUuid . '.' . $photoExtension;
+                    
+                    $validated['bride_photo'] = $photoFile->storeAs('bride/photos', $photoFileName, 'public');
+                } else {
+                    throw new \Exception('Invalid photo file uploaded');
+                }
+            } elseif ($isUpdate) {
+                $validated['bride_photo'] = $oldBridePhoto;
+            } else {
+                $validated['bride_photo'] = null;
             }
 
-            $brideInfo = BrideInfo::create([
+            $brideData = [
                 'bride_fullname' => $validated['bride_fullname'],
                 'bride_father' => $validated['bride_father'],
                 'bride_mother' => $validated['bride_mother'],
                 'bride_instagram' => $validated['bride_instagram'] ?? null,
-                'bride_photo' => $validated['bride_photo'] ?? null,
-            ]);
+                'bride_photo' => $validated['bride_photo'],
+            ];
+
+            if ($isUpdate) {
+                $existingBrideInfo->update($brideData);
+                $brideInfo = $existingBrideInfo;
+
+                if ($request->hasFile('bride_photo') && $oldBridePhoto && Storage::disk('public')->exists($oldBridePhoto)) {
+                    Storage::disk('public')->delete($oldBridePhoto);
+                }
+            } else {
+                $brideInfo = BrideInfo::create([
+                    'invitation_id' => $validated['invitation_id'],
+                    ...$brideData
+                ]);
+            }
 
             DB::commit();
-    
+
+            $brideInfo->load(['invitation']);
+
             return response()->json([
                 'status' => 'success',
-                'message' => 'bride info added successfully',
+                'message' => $isUpdate ? 'Bride info updated successfully' : 'Bride info created successfully',
                 'data' => $brideInfo,
-            ], 201);
-    
+            ], $isUpdate ? 200 : 201);
+
         } catch (\Exception $e) {
             DB::rollBack();
             
-            if (isset($validated['bride_photo']) && Storage::disk('public')->exists($validated['bride_photo'])) {
+            if (isset($validated['bride_photo']) && $validated['bride_photo'] && Storage::disk('public')->exists($validated['bride_photo'])) {
                 Storage::disk('public')->delete($validated['bride_photo']);
             }
-    
+
             return response()->json([
                 'status' => 'error',
-                'message' => 'Failed to add bride info. Please try again.',
+                'message' => $isUpdate ? 'Failed to update bride info. Please try again.' : 'Failed to create bride info. Please try again.',
                 'error' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
@@ -92,10 +121,10 @@ class BrideController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show($invitationId)
     {
         try {
-            $brideInfo = BrideInfo::find($id);
+            $brideInfo = BrideInfo::where('invitation_id', $invitationId)->first();
 
             if (!$brideInfo) {
                 return response()->json([
@@ -106,7 +135,7 @@ class BrideController extends Controller
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'bride info retrieved successfully',
+                'message' => 'Bride info retrieved successfully',
                 'data' => [
                     'id' => $brideInfo->id,
                     'bride_fullname' => $brideInfo->bride_fullname,

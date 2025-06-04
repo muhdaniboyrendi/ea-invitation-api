@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\Event;
+use App\Models\Invitation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
@@ -322,25 +323,27 @@ class EventController extends Controller
     /**
      * Get events by invitation ID.
      */
-    public function getByInvitation($invitationId)
+    public function getEventsByInvitation($invitationId)
     {
         try {
-            $user = Auth::user();
+            $invitation = Invitation::find($invitationId);
             
-            // Verify invitation belongs to user
-            $invitation = \App\Models\Invitation::where('id', $invitationId)
-                ->where('user_id', $user->id)
-                ->firstOrFail();
+            if (!$invitation) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Invitation not found',
+                ], 404);
+            }
 
             $events = Event::where('invitation_id', $invitationId)
-                ->orderBy('date')
-                ->orderBy('time_start')
-                ->get();
+                        ->orderBy('date', 'asc')
+                        ->orderBy('time_start', 'asc')
+                        ->get();
 
             return response()->json([
                 'status' => 'success',
                 'message' => 'Events retrieved successfully',
-                'data' => $events
+                'data' => $events,
             ], 200);
 
         } catch (\Exception $e) {
