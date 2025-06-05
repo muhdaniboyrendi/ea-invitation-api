@@ -23,6 +23,9 @@ return new class extends Migration
             $table->text('maps_url')->nullable();
             $table->text('maps_embed_url')->nullable();
             $table->timestamps();
+            
+            $table->index(['invitation_id', 'date']);
+            $table->index(['date', 'time_start']);
         });
     }
 

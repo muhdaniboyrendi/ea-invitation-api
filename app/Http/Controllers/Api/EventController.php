@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use Carbon\Carbon;
 use App\Models\Event;
 use App\Models\Invitation;
 use Illuminate\Http\Request;
@@ -17,29 +18,6 @@ class EventController extends Controller
      */
     public function index()
     {
-        try {
-            $user = Auth::user();
-            $events = Event::with('invitation')
-                ->whereHas('invitation', function($query) use ($user) {
-                    $query->where('user_id', $user->id);
-                })
-                ->orderBy('date')
-                ->orderBy('time_start')
-                ->get();
-
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Events retrieved successfully',
-                'data' => $events
-            ], 200);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Failed to retrieve events',
-                'error' => config('app.debug') ? $e->getMessage() : null
-            ], 500);
-        }
     }
 
     /**
@@ -108,8 +86,17 @@ class EventController extends Controller
                     'time_end' => $eventData['time_end'] ?? null,
                     'address' => $eventData['address'] ?? null,
                     'maps_url' => $eventData['maps_url'] ?? null,
-                    'maps_embed_url' => $eventData['maps_embed_url'] ?? null,
                 ];
+
+                // Handle maps_embed_url - auto-generate if not provided but maps_url exists
+                if (!empty($eventData['maps_embed_url'])) {
+                    $eventAttributes['maps_embed_url'] = $eventData['maps_embed_url'];
+                } elseif (!empty($eventData['maps_url'])) {
+                    $embedUrl = Event::convertToEmbedUrl($eventData['maps_url']);
+                    if ($embedUrl) {
+                        $eventAttributes['maps_embed_url'] = $embedUrl;
+                    }
+                }
 
                 // Check if event has ID (update) or not (create)
                 if (isset($eventData['id']) && !empty($eventData['id'])) {
@@ -211,13 +198,22 @@ class EventController extends Controller
                 'invitation_id' => $validated['invitation_id'],
                 'name' => $validated['name'],
                 'venue' => $validated['venue'],
-                'date' => $validated['date'],
+                'date' => Carbon::parse($validated['date'])->toDateString(),
                 'time_start' => $validated['time_start'],
                 'time_end' => $validated['time_end'] ?? null,
                 'address' => $validated['address'] ?? null,
                 'maps_url' => $validated['maps_url'] ?? null,
-                'maps_embed_url' => $validated['maps_embed_url'] ?? null,
             ];
+
+            // Handle maps_embed_url - auto-generate if not provided but maps_url exists
+            if (!empty($validated['maps_embed_url'])) {
+                $eventAttributes['maps_embed_url'] = $validated['maps_embed_url'];
+            } elseif (!empty($validated['maps_url'])) {
+                $embedUrl = Event::convertToEmbedUrl($validated['maps_url']);
+                if ($embedUrl) {
+                    $eventAttributes['maps_embed_url'] = $embedUrl;
+                }
+            }
 
             $isUpdate = false;
 
@@ -463,6 +459,51 @@ class EventController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'Failed to delete events. Please try again.',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
+    }
+
+    /**
+     * Convert Google Maps URL to embed URL.
+     */
+    public function convertMapsUrl(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'maps_url' => 'required|url',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            $embedUrl = Event::convertToEmbedUrl($request->maps_url);
+            
+            if ($embedUrl) {
+                return response()->json([
+                    'status' => 'success',
+                    'message' => 'URL converted successfully',
+                    'data' => [
+                        'original_url' => $request->maps_url,
+                        'embed_url' => $embedUrl
+                    ]
+                ], 200);
+            } else {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Unable to convert the provided Google Maps URL',
+                ], 400);
+            }
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to convert URL',
                 'error' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
