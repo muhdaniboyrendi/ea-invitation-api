@@ -79,6 +79,9 @@ Route::get('/brides/{invitationId}', [BrideController::class, 'show']);
 // Events
 Route::get('invitations/{invitationId}/events', [EventController::class, 'getEventsByInvitation']);
 
+// Love Stories
+Route::get('invitations/{invitationId}/love-stories', [LoveStoryController::class, 'getStoriesByInvitation']);
+
 // Galleries
 Route::get('galleries/public', [GalleryController::class, 'index']);
 
@@ -136,10 +139,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Love Stories
     Route::apiResource('love-stories', LoveStoryController::class);
-    Route::get('invitations/{id}/love-stories', [LoveStoryController::class, 'getByInvitation']);
-    Route::get('invitations/{id}/love-stories/timeline', [LoveStoryController::class, 'timeline']);
     Route::delete('love-stories/bulk-delete', [LoveStoryController::class, 'bulkDelete']);
-    Route::patch('love-stories/update-order', [LoveStoryController::class, 'updateOrder']);
 
     // Gift Infos
     Route::apiResource('gift-infos', GiftInfoController::class);

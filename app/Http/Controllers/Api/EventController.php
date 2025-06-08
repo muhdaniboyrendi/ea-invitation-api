@@ -265,27 +265,7 @@ class EventController extends Controller
      */
     public function show($id)
     {
-        try {
-            $user = Auth::user();
-            $event = Event::with('invitation')
-                ->whereHas('invitation', function($query) use ($user) {
-                    $query->where('user_id', $user->id);
-                })
-                ->findOrFail($id);
-
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Event retrieved successfully',
-                'data' => $event
-            ], 200);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Event not found',
-                'error' => config('app.debug') ? $e->getMessage() : null
-            ], 404);
-        }
+        //
     }
 
     /**
@@ -293,60 +273,7 @@ class EventController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $user = Auth::user();
-
-        try {
-            $event = Event::whereHas('invitation', function($query) use ($user) {
-                $query->where('user_id', $user->id);
-            })->findOrFail($id);
-
-            $validator = Validator::make($request->all(), [
-                'invitation_id' => 'sometimes|required|exists:invitations,id',
-                'name' => 'sometimes|required|string|max:255',
-                'venue' => 'sometimes|required|string|max:255',
-                'date' => 'sometimes|required|date|after_or_equal:today',
-                'time_start' => 'sometimes|required|date_format:H:i',
-                'time_end' => 'nullable|date_format:H:i|after:time_start',
-                'address' => 'nullable|string',
-                'maps_url' => 'nullable|url',
-                'maps_embed_url' => 'nullable|url',
-            ], [
-                'time_end.after' => 'The end time must be after the start time.',
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
-            $validated = $validator->validated();
-
-            DB::beginTransaction();
-
-            $event->update($validated);
-
-            DB::commit();
-
-            $event->load('invitation');
-
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Event updated successfully',
-                'data' => $event,
-            ], 200);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Failed to update event. Please try again.',
-                'error' => config('app.debug') ? $e->getMessage() : null
-            ], 500);
-        }
+        //
     }
 
     /**
