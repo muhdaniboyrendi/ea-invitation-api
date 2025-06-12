@@ -10,8 +10,6 @@ class GiftInfo extends Model
 {
     use HasFactory;
 
-    protected $table = 'gift_info';
-
     protected $fillable = [
         'invitation_id',
         'bank_name',

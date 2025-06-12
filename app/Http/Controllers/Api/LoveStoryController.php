@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Models\LoveStory;
 use App\Models\Invitation;
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
@@ -63,6 +64,7 @@ class LoveStoryController extends Controller
         }
 
         $validated = $validator->validated();
+        $uploadedThumbnails = [];
 
         try {
             DB::beginTransaction();
@@ -71,39 +73,63 @@ class LoveStoryController extends Controller
             $createdCount = 0;
             $updatedCount = 0;
             
-            foreach ($validated['love_stories'] as $storyData) {
+            foreach ($validated['love_stories'] as $index => $storyData) {
                 $storyAttributes = [
                     'invitation_id' => $validated['invitation_id'],
                     'title' => $storyData['title'],
                     'date' => $storyData['date'] ?? null,
                     'description' => $storyData['description'] ?? null,
-                    'thumbnail' => $storyData['thumbnail'] ?? null,
                 ];
 
-                // Check if love story has ID (update) or not (create)
+                $oldThumbnail = null;
+                $isUpdate = false;
+
+                // Check if this is an update
                 if (isset($storyData['id']) && !empty($storyData['id'])) {
-                    // Update existing love story
                     $loveStory = LoveStory::find($storyData['id']);
                     
-                    if ($loveStory) {
-                        // Verify that the love story belongs to the same invitation
-                        if ($loveStory->invitation_id != $validated['invitation_id']) {
-                            throw new \Exception("Love Story ID {$storyData['id']} does not belong to invitation {$validated['invitation_id']}");
-                        }
-                        
-                        // Delete old thumbnail if new one is uploaded
-                        if (isset($storyAttributes['thumbnail']) && $loveStory->thumbnail) {
-                            Storage::disk('public')->delete($loveStory->thumbnail);
-                        }
-                        
-                        $loveStory->update($storyAttributes);
-                        $processedLoveStories[] = $loveStory;
-                        $updatedCount++;
-                    } else {
+                    if (!$loveStory) {
                         throw new \Exception("Love Story with ID {$storyData['id']} not found");
                     }
+
+                    if ($loveStory->invitation_id != $validated['invitation_id']) {
+                        throw new \Exception("Love Story ID {$storyData['id']} does not belong to invitation {$validated['invitation_id']}");
+                    }
+
+                    $oldThumbnail = $loveStory->thumbnail;
+                    $isUpdate = true;
+                }
+
+                // Handle thumbnail upload
+                if ($request->hasFile("love_stories.{$index}.thumbnail")) {
+                    $thumbnailFile = $request->file("love_stories.{$index}.thumbnail");
+                    
+                    if ($thumbnailFile->isValid()) {
+                        $thumbnailExtension = $thumbnailFile->getClientOriginalExtension();
+                        $thumbnailUuid = Str::uuid();
+                        $thumbnailFileName = $thumbnailUuid . '.' . $thumbnailExtension;
+                        
+                        $storyAttributes['thumbnail'] = $thumbnailFile->storeAs('love_stories/thumbnails', $thumbnailFileName, 'public');
+                        $uploadedThumbnails[] = $storyAttributes['thumbnail'];
+                    } else {
+                        throw new \Exception('Invalid thumbnail file uploaded');
+                    }
+                } elseif ($isUpdate) {
+                    $storyAttributes['thumbnail'] = $oldThumbnail;
                 } else {
-                    // Create new love story
+                    $storyAttributes['thumbnail'] = null;
+                }
+
+                if ($isUpdate) {
+                    $loveStory->update($storyAttributes);
+                    $processedLoveStories[] = $loveStory;
+                    $updatedCount++;
+
+                    // Delete old thumbnail if new one was uploaded
+                    if ($request->hasFile("love_stories.{$index}.thumbnail") && $oldThumbnail && Storage::disk('public')->exists($oldThumbnail)) {
+                        Storage::disk('public')->delete($oldThumbnail);
+                    }
+                } else {
                     $loveStory = LoveStory::create($storyAttributes);
                     $processedLoveStories[] = $loveStory;
                     $createdCount++;
@@ -112,11 +138,9 @@ class LoveStoryController extends Controller
 
             DB::commit();
 
-            // Load relationships for response
             $loveStoryIds = collect($processedLoveStories)->pluck('id');
             $loveStories = LoveStory::with('invitation')->whereIn('id', $loveStoryIds)->orderBy('date')->orderBy('created_at')->get();
 
-            // Generate response message
             $messages = [];
             if ($createdCount > 0) {
                 $messages[] = "{$createdCount} love story(s) created";
@@ -139,6 +163,13 @@ class LoveStoryController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+            
+            // Clean up uploaded thumbnails on error
+            foreach ($uploadedThumbnails as $thumbnail) {
+                if (Storage::disk('public')->exists($thumbnail)) {
+                    Storage::disk('public')->delete($thumbnail);
+                }
+            }
 
             return response()->json([
                 'status' => 'error',
@@ -182,38 +213,52 @@ class LoveStoryController extends Controller
                 'description' => $validated['description'] ?? null,
             ];
 
+            $isUpdate = false;
+            $oldThumbnail = null;
+
+            // Check if this is an update
+            if (isset($validated['id']) && !empty($validated['id'])) {
+                $loveStory = LoveStory::find($validated['id']);
+                
+                if (!$loveStory) {
+                    throw new \Exception("Love Story with ID {$validated['id']} not found");
+                }
+
+                if ($loveStory->invitation_id != $validated['invitation_id']) {
+                    throw new \Exception("Love Story ID {$validated['id']} does not belong to invitation {$validated['invitation_id']}");
+                }
+
+                $oldThumbnail = $loveStory->thumbnail;
+                $isUpdate = true;
+            }
+
             // Handle thumbnail upload
             if ($request->hasFile('thumbnail')) {
                 $thumbnailFile = $request->file('thumbnail');
-                $thumbnailPath = $thumbnailFile->store('love_stories/thumbnails', 'public');
-                $storyAttributes['thumbnail'] = $thumbnailPath;
+                
+                if ($thumbnailFile->isValid()) {
+                    $thumbnailExtension = $thumbnailFile->getClientOriginalExtension();
+                    $thumbnailUuid = Str::uuid();
+                    $thumbnailFileName = $thumbnailUuid . '.' . $thumbnailExtension;
+                    
+                    $storyAttributes['thumbnail'] = $thumbnailFile->storeAs('love_stories/thumbnails', $thumbnailFileName, 'public');
+                } else {
+                    throw new \Exception('Invalid thumbnail file uploaded');
+                }
+            } elseif ($isUpdate) {
+                $storyAttributes['thumbnail'] = $oldThumbnail;
+            } else {
+                $storyAttributes['thumbnail'] = null;
             }
 
-            $isUpdate = false;
+            if ($isUpdate) {
+                $loveStory->update($storyAttributes);
 
-            // Check if love story has ID (update) or not (create)
-            if (isset($validated['id']) && !empty($validated['id'])) {
-                // Update existing love story
-                $loveStory = LoveStory::find($validated['id']);
-                
-                if ($loveStory) {
-                    // Verify that the love story belongs to the same invitation
-                    if ($loveStory->invitation_id != $validated['invitation_id']) {
-                        throw new \Exception("Love Story ID {$validated['id']} does not belong to invitation {$validated['invitation_id']}");
-                    }
-                    
-                    // Delete old thumbnail if new one is uploaded
-                    if (isset($storyAttributes['thumbnail']) && $loveStory->thumbnail) {
-                        Storage::disk('public')->delete($loveStory->thumbnail);
-                    }
-                    
-                    $loveStory->update($storyAttributes);
-                    $isUpdate = true;
-                } else {
-                    throw new \Exception("Love Story with ID {$validated['id']} not found");
+                // Delete old thumbnail if new one was uploaded
+                if ($request->hasFile('thumbnail') && $oldThumbnail && Storage::disk('public')->exists($oldThumbnail)) {
+                    Storage::disk('public')->delete($oldThumbnail);
                 }
             } else {
-                // Create new love story
                 $loveStory = LoveStory::create($storyAttributes);
             }
 
@@ -230,6 +275,11 @@ class LoveStoryController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+            
+            // Clean up uploaded thumbnail on error
+            if (isset($storyAttributes['thumbnail']) && Storage::disk('public')->exists($storyAttributes['thumbnail'])) {
+                Storage::disk('public')->delete($storyAttributes['thumbnail']);
+            }
 
             return response()->json([
                 'status' => 'error',
@@ -262,18 +312,20 @@ class LoveStoryController extends Controller
     {
         try {
             $user = Auth::user();
+            
             $loveStory = LoveStory::whereHas('invitation', function($query) use ($user) {
                 $query->where('user_id', $user->id);
             })->findOrFail($id);
 
             DB::beginTransaction();
 
-            // Delete thumbnail file if exists
-            if ($loveStory->thumbnail) {
-                Storage::disk('public')->delete($loveStory->thumbnail);
-            }
+            $thumbnailPath = $loveStory->thumbnail;
 
             $loveStory->delete();
+
+            if ($thumbnailPath && Storage::disk('public')->exists($thumbnailPath)) {
+                Storage::disk('public')->delete($thumbnailPath);
+            }
 
             DB::commit();
 
@@ -281,7 +333,6 @@ class LoveStoryController extends Controller
                 'status' => 'success',
                 'message' => 'Love story deleted successfully',
             ], 200);
-
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -310,13 +361,22 @@ class LoveStoryController extends Controller
 
             $loveStories = LoveStory::where('invitation_id', $invitationId)
                         ->orderBy('date')
-                        ->orderBy('created_at')
                         ->get();
 
             return response()->json([
                 'status' => 'success',
                 'message' => 'Love stories retrieved successfully',
-                'data' => $loveStories,
+                'data' => $loveStories->map(function($story) {
+                    return [
+                        'id' => $story->id,
+                        'title' => $story->title,
+                        'date' => $story->date,
+                        'description' => $story->description,
+                        'thumbnail_url' => $story->thumbnail_url,
+                        'created_at' => $story->created_at,
+                        'updated_at' => $story->updated_at,
+                    ];
+                }),
             ], 200);
 
         } catch (\Exception $e) {

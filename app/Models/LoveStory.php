@@ -35,6 +35,11 @@ class LoveStory extends Model
         return $this->belongsTo(Invitation::class);
     }
 
+    public function getThumbnailUrlAttribute(): ?string
+    {
+        return $this->thumbnail ? asset('storage/' . $this->thumbnail) : null;
+    }
+
     /**
      * Get formatted date attribute.
      */

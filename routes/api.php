@@ -82,6 +82,9 @@ Route::get('invitations/{invitationId}/events', [EventController::class, 'getEve
 // Love Stories
 Route::get('invitations/{invitationId}/love-stories', [LoveStoryController::class, 'getStoriesByInvitation']);
 
+// Gifts
+Route::get('invitations/{invitationId}/gift-infos', [GiftInfoController::class, 'getGiftsByInvitation']);
+
 // Galleries
 Route::get('galleries/public', [GalleryController::class, 'index']);
 
@@ -124,10 +127,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/orders', [OrderController::class, 'getOrders']);
     Route::get('/order/{order_id}', [OrderController::class, 'getOrder']);
 
-    // Events
-    Route::apiResource('events', EventController::class);
-    Route::delete('events/bulk-delete', [EventController::class, 'bulkDelete']);
-
     // Main Info
     Route::apiResource('main-infos', MainInfoController::class)->except(['show']);
 
@@ -136,6 +135,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Bride Info
     Route::apiResource('brides', BrideController::class)->except(['show']);
+    
+    // Events
+    Route::apiResource('events', EventController::class);
+    Route::delete('events/bulk-delete', [EventController::class, 'bulkDelete']);
 
     // Love Stories
     Route::apiResource('love-stories', LoveStoryController::class);
