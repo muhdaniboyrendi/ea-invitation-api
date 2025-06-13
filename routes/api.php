@@ -69,6 +69,7 @@ Route::prefix('payments')->group(function () {
 
 // Main Infos
 Route::get('/main-infos/{invitationId}', [MainInfoController::class, 'show']);
+Route::get('/main-infos/{invitationId}/photo', [MainInfoController::class, 'getPhoto']);
 
 // Groom Infos
 Route::get('/grooms/{invitationId}', [GroomController::class, 'show']);
@@ -129,6 +130,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Main Info
     Route::apiResource('main-infos', MainInfoController::class)->except(['show']);
+    Route::post('/main-infos/photo', [MainInfoController::class, 'addOrUpdatePhoto']);
 
     // Groom Info
     Route::apiResource('grooms', GroomController::class)->except(['show']);
