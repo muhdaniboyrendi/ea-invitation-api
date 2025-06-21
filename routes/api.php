@@ -78,16 +78,16 @@ Route::get('/grooms/{invitationId}', [GroomController::class, 'show']);
 Route::get('/brides/{invitationId}', [BrideController::class, 'show']);
 
 // Events
-Route::get('invitations/{invitationId}/events', [EventController::class, 'getEventsByInvitation']);
+Route::get('/invitations/{invitationId}/events', [EventController::class, 'getEventsByInvitation']);
 
 // Love Stories
-Route::get('invitations/{invitationId}/love-stories', [LoveStoryController::class, 'getStoriesByInvitation']);
+Route::get('/invitations/{invitationId}/love-stories', [LoveStoryController::class, 'getStoriesByInvitation']);
 
 // Gifts
-Route::get('invitations/{invitationId}/gift-infos', [GiftInfoController::class, 'getGiftsByInvitation']);
+Route::get('/invitations/{invitationId}/gift-infos', [GiftInfoController::class, 'getGiftsByInvitation']);
 
 // Galleries
-Route::get('galleries/public', [GalleryController::class, 'index']);
+Route::get('/invitations/{invitationId}/galleries', [GalleryController::class, 'show']);
 
 Route::middleware('auth:sanctum')->group(function () {
     // Auth
@@ -150,14 +150,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('gift-infos', GiftInfoController::class);
     Route::post('gift-infos/bulk-update', [GiftInfoController::class, 'bulkUpdate']);
 
-    // Galleris
-    Route::apiResource('galleries', GalleryController::class);
-    Route::delete('galleries/bulk-destroy', [GalleryController::class, 'bulkDestroy']);
-    Route::post('galleries/reorder', [GalleryController::class, 'reorder']);
+    // Gelleries
+    Route::apiResource('galleries', GalleryController::class)->except(['show']);
+    Route::delete('/invitations/{invitationId}/galleries', [GalleryController::class, 'destroyAll']);
     
     // ADMIN
     Route::put('/users/admin/{id}', [UserController::class, 'setAdmin']);
     
     Route::apiResource('users', UserController::class);
-    
 });

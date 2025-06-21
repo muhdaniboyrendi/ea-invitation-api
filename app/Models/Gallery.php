@@ -50,31 +50,31 @@ class Gallery extends Model
     /**
      * Scope to filter by invitation
      */
-    public function scopeByInvitation($query, $invitationId)
-    {
-        return $query->where('invitation_id', $invitationId);
-    }
+    // public function scopeByInvitation($query, $invitationId)
+    // {
+    //     return $query->where('invitation_id', $invitationId);
+    // }
 
     /**
      * Scope to order by creation date
      */
-    public function scopeLatest($query)
-    {
-        return $query->orderBy('created_at', 'desc');
-    }
+    // public function scopeLatest($query)
+    // {
+    //     return $query->orderBy('created_at', 'desc');
+    // }
 
     /**
      * Boot method to handle model events
      */
-    protected static function boot()
-    {
-        parent::boot();
+    // protected static function boot()
+    // {
+    //     parent::boot();
 
-        // Delete image file when model is deleted
-        static::deleting(function ($gallery) {
-            if ($gallery->image_path && Storage::disk('public')->exists($gallery->image_path)) {
-                Storage::disk('public')->delete($gallery->image_path);
-            }
-        });
-    }
+    //     // Delete image file when model is deleted
+    //     static::deleting(function ($gallery) {
+    //         if ($gallery->image_path && Storage::disk('public')->exists($gallery->image_path)) {
+    //             Storage::disk('public')->delete($gallery->image_path);
+    //         }
+    //     });
+    // }
 }
