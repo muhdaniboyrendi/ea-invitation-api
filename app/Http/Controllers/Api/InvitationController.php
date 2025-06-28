@@ -117,7 +117,30 @@ class InvitationController extends Controller
      */
     public function show(string $id)
     {
-        //
+        try {            
+            $invitation = Invitation::with(['guests'])
+                ->find($id);
+    
+            if (!$invitation) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Invitation not found'
+                ], 404);
+            }
+    
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Invitation retrieved successfully',
+                'data' => $invitation
+            ], 200);
+    
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to retrieve invitation',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
     }
 
     /**
@@ -195,6 +218,35 @@ class InvitationController extends Controller
                 'status' => 'error',
                 'message' => 'Error checking invitation',
                 'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Display all invitations for the authenticated user.
+     */
+    public function showInvitationByUser()
+    {
+        try {
+            $user = Auth::user();
+            
+            $invitations = Invitation::with(['guests'])
+                ->where('user_id', $user->id)
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'User invitations retrieved successfully',
+                'data' => $invitations,
+                'count' => $invitations->count()
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to retrieve user invitations',
+                'error' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
     }

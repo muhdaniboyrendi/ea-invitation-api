@@ -106,6 +106,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Invitations
     Route::prefix('invitations')->group(function () {
         Route::post('/', [InvitationController::class, 'store']);
+        Route::get('/user', [InvitationController::class, 'showInvitationByUser']);
         Route::post('/check', [InvitationController::class, 'checkByOrderId']);
     });
 
@@ -159,3 +160,6 @@ Route::middleware('auth:sanctum')->group(function () {
     
     Route::apiResource('users', UserController::class);
 });
+
+// Invitations
+Route::get('/invitations/{id}', [InvitationController::class, 'show']);
