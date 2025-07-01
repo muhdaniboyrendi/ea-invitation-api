@@ -109,14 +109,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/', [InvitationController::class, 'store']);
         Route::get('/user', [InvitationController::class, 'showInvitationByUser']);
         Route::post('/check', [InvitationController::class, 'checkByOrderId']);
+        Route::get('/{id}', [InvitationController::class, 'show']);
+        Route::put('/{id}', [InvitationController::class, 'update']);
         Route::put('/{id}/complete', [InvitationController::class, 'completeInvitation']);
     });
 
     // Guests
     Route::apiResource('guests', GuestController::class)->except(['index', 'show']);
-    Route::prefix('guests')->group(function () {
-        Route::get('/{invitationId}', [GuestController::class, 'getGuestsByInvitationId']);
-    });
 
     // Payments
     Route::prefix('payments')->group(function () {
@@ -162,6 +161,3 @@ Route::middleware('auth:sanctum')->group(function () {
     
     Route::apiResource('users', UserController::class);
 });
-
-// Invitations
-Route::get('/invitations/{id}', [InvitationController::class, 'show']);

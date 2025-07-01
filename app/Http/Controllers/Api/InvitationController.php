@@ -117,24 +117,29 @@ class InvitationController extends Controller
      */
     public function show(string $id)
     {
-        try {            
-            $invitation = Invitation::with(['guests'])
-                ->find($id);
-    
+        try {
+            DB::beginTransaction();
+
+            $invitation = Invitation::with(['order', 'theme'])->find($id);
+
             if (!$invitation) {
                 return response()->json([
                     'status' => 'error',
                     'message' => 'Invitation not found'
                 ], 404);
             }
-    
+
+            DB::commit();
+
             return response()->json([
                 'status' => 'success',
                 'message' => 'Invitation retrieved successfully',
                 'data' => $invitation
             ], 200);
-    
+
         } catch (\Exception $e) {
+            DB::rollBack();
+
             return response()->json([
                 'status' => 'error',
                 'message' => 'Failed to retrieve invitation',
@@ -148,7 +153,88 @@ class InvitationController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        //
+        $validator = Validator::make(array_merge($request->all(), ['id' => $id]), [
+            'id' => 'required|exists:invitations,id',
+            'theme_id' => 'sometimes|exists:themes,id',
+            'groom' => 'sometimes|string|max:50',
+            'bride' => 'sometimes|string|max:50'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $validated = $validator->validated();
+        $user = Auth::user();
+
+        try {
+            DB::beginTransaction();
+
+            $invitation = Invitation::with(['order.package'])->find($validated['id']);
+
+            if (!$invitation) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Invitation not found'
+                ], 404);
+            }
+
+            if ($invitation->user_id !== $user->id) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Forbidden: You do not have permission to update this invitation'
+                ], 403);
+            }
+
+            // Check if invitation is expired
+            if ($invitation->expiry_date && now()->gt($invitation->expiry_date)) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Cannot update expired invitation'
+                ], 400);
+            }
+
+            // Prepare data for update (only include fields that are present in request)
+            $updateData = [];
+            
+            if (isset($validated['theme_id'])) {
+                $updateData['theme_id'] = $validated['theme_id'];
+            }
+            
+            if (isset($validated['groom'])) {
+                $updateData['groom'] = $validated['groom'];
+            }
+            
+            if (isset($validated['bride'])) {
+                $updateData['bride'] = $validated['bride'];
+            }
+
+            // Add updated timestamp
+            $updateData['updated_at'] = now();
+
+            $invitation->update($updateData);
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Invitation updated successfully',
+                'data' => $invitation->fresh()->load(['user', 'order', 'theme'])
+            ], 200);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to update invitation',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
     }
 
     /**
