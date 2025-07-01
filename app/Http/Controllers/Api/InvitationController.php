@@ -250,4 +250,26 @@ class InvitationController extends Controller
             ], 500);
         }
     }
+
+    public function completeInvitation($id)
+    {
+        try {
+            $invitation = Invitation::findOrFail($id);
+            $invitation->status = 'published';
+            $invitation->save();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Invitation published successfully',
+                'data' => $invitation
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to update invitation status',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
+    }
 }

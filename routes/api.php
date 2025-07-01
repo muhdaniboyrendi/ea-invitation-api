@@ -56,7 +56,8 @@ Route::prefix('backsounds')->group(function () {
     Route::get('/{id}', [BacksoundController::class, 'show']);
 });
 
-// Guest
+// Guests
+Route::get('/guests/{invitationId}', [GuestController::class, 'getGuestsByInvitationId']);
 Route::get('/guest/{slug}', [GuestController::class, 'getGuestBySlug']);
 Route::put('/rsvp/{slug}', [GuestController::class, 'rsvp']);
 
@@ -108,6 +109,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/', [InvitationController::class, 'store']);
         Route::get('/user', [InvitationController::class, 'showInvitationByUser']);
         Route::post('/check', [InvitationController::class, 'checkByOrderId']);
+        Route::put('/{id}/complete', [InvitationController::class, 'completeInvitation']);
     });
 
     // Guests

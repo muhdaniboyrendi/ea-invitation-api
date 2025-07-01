@@ -26,13 +26,6 @@ class GuestController extends Controller
     {
         $user = Auth::user();
 
-        if ($user->id != $request->user_id) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Forbidden: You do not have permission to perform this action.',
-            ], 403);
-        }
-
         $validator = Validator::make($request->all(), [
             'invitation_id' => 'required|exists:invitations,id',
             'name' => 'required|string|max:255',
@@ -94,13 +87,6 @@ class GuestController extends Controller
     public function update(Request $request, string $id)
     {
         $user = Auth::user();
-
-        if ($user->id != $request->user_id) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Forbidden: You do not have permission to perform this action.',
-            ], 403);
-        }
 
         $validator = Validator::make($request->all(), [
             'name' => 'sometimes|required|string|max:255',
@@ -191,12 +177,30 @@ class GuestController extends Controller
             ], 422);
         }
 
-        $guests = Guest::where('invitation_id', $invitationId)->get();
+        $validated = $validator->validated();
 
-        return response()->json([
-            'status' => 'success',
-            'data' => $guests
-        ], 200);
+        try {
+            DB::beginTransaction();
+
+            $guests = Guest::where('invitation_id', $validated['invitation_id'])->get();
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Guests retrieved successfully',
+                'data' => $guests
+            ], 200);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to retrieve guests',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
     }
 
     public function getGuestBySlug($slug)
