@@ -1,33 +1,48 @@
 <?php
 
-use App\Models\BrideInfo;
-use App\Models\GroomInfo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\UserController;
-use App\Http\Controllers\Api\EventController;
-use App\Http\Controllers\Api\GroomController;
-use App\Http\Controllers\Api\GuestController;
-use App\Http\Controllers\Api\OrderController;
-use App\Http\Controllers\Api\ThemeController;
-use App\Http\Controllers\Api\GalleryController;
-use App\Http\Controllers\Api\PackageController;
-use App\Http\Controllers\Api\PaymentController;
-use App\Http\Controllers\Api\GiftInfoController;
-use App\Http\Controllers\Api\MainInfoController;
-use App\Http\Controllers\Api\BacksoundController;
-use App\Http\Controllers\Api\BrideController;
-use App\Http\Controllers\Api\LoveStoryController;
-use App\Http\Controllers\Api\GoogleAuthController;
-use App\Http\Controllers\Api\InvitationController;
-use App\Http\Controllers\Api\ThemeCategoryController;
+use App\Http\Controllers\Api\{
+    AuthController,
+    UserController,
+    EventController,
+    GroomController,
+    GuestController,
+    OrderController,
+    ThemeController,
+    GalleryController,
+    PackageController,
+    PaymentController,
+    GiftInfoController,
+    MainInfoController,
+    BacksoundController,
+    BrideController,
+    LoveStoryController,
+    GoogleAuthController,
+    InvitationController,
+    ThemeCategoryController
+};
+
+/*
+|--------------------------------------------------------------------------
+| API Routes
+|--------------------------------------------------------------------------
+|
+| Here is where you can register API routes for your application. These
+| routes are loaded by the RouteServiceProvider and all of them will
+| be assigned to the "api" middleware group. Make something great!
+|
+*/
 
 Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
-// Auth
+/*
+|--------------------------------------------------------------------------
+| Public Authentication Routes
+|--------------------------------------------------------------------------
+*/
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
@@ -37,74 +52,104 @@ Route::prefix('auth')->group(function () {
     Route::get('/google/callback', [GoogleAuthController::class, 'handleGoogleCallback']);
 });
 
-// Packages
+/*
+|--------------------------------------------------------------------------
+| Public API Routes
+|--------------------------------------------------------------------------
+*/
+
+// Packages (Public)
 Route::prefix('packages')->group(function () {
     Route::get('/', [PackageController::class, 'index']);
     Route::get('/{id}', [PackageController::class, 'show']);
 });
 
-// Themes
+// Themes (Public)
 Route::prefix('themes')->group(function () {
     Route::get('/', [ThemeController::class, 'index']);
     Route::get('/categories', [ThemeCategoryController::class, 'index']);
     Route::get('/{id}', [ThemeController::class, 'show']);
 });
 
-// Backsounds
+// Backsounds (Public)
 Route::prefix('backsounds')->group(function () {
     Route::get('/', [BacksoundController::class, 'index']);
     Route::get('/{id}', [BacksoundController::class, 'show']);
 });
 
-// Guests
+// Guests (Public)
 Route::get('/guests/{invitationId}', [GuestController::class, 'getGuestsByInvitationId']);
 Route::get('/guest/{slug}', [GuestController::class, 'getGuestBySlug']);
 Route::put('/rsvp/{slug}', [GuestController::class, 'rsvp']);
 
-// Payments
+// Payment Webhooks (Public)
 Route::prefix('payments')->group(function () {
     Route::post('/notification', [PaymentController::class, 'handleNotification']);
     Route::post('/recurring-notification', [PaymentController::class, 'handleRecurringNotification']);
     Route::post('/account-notification', [PaymentController::class, 'handleAccountNotification']);
 });
 
-// Main Infos
+// Public Invitation Data Access
 Route::get('/main-infos/{invitationId}', [MainInfoController::class, 'show']);
 Route::get('/main-infos/{invitationId}/photo', [MainInfoController::class, 'getPhoto']);
-
-// Groom Infos
 Route::get('/grooms/{invitationId}', [GroomController::class, 'show']);
-
-// Bride Infos
 Route::get('/brides/{invitationId}', [BrideController::class, 'show']);
-
-// Events
 Route::get('/invitations/{invitationId}/events', [EventController::class, 'getEventsByInvitation']);
-
-// Love Stories
 Route::get('/invitations/{invitationId}/love-stories', [LoveStoryController::class, 'getStoriesByInvitation']);
-
-// Gifts
 Route::get('/invitations/{invitationId}/gift-infos', [GiftInfoController::class, 'getGiftsByInvitation']);
-
-// Galleries
 Route::get('/invitations/{invitationId}/galleries', [GalleryController::class, 'show']);
 
+/*
+|--------------------------------------------------------------------------
+| Protected API Routes (Authentication Required)
+|--------------------------------------------------------------------------
+*/
 Route::middleware('auth:sanctum')->group(function () {
-    // Auth
+    
+    /*
+    |--------------------------------------------------------------------------
+    | Authentication Routes (Protected)
+    |--------------------------------------------------------------------------
+    */
     Route::post('/logout', [AuthController::class, 'logout']);
 
-    // Packages
-    Route::apiResource('packages', PackageController::class)->except(['index', 'show']);
+    /*
+    |--------------------------------------------------------------------------
+    | User Management
+    |--------------------------------------------------------------------------
+    */
+    Route::apiResource('users', UserController::class);
+    Route::put('/users/admin/{id}', [UserController::class, 'setAdmin']);
 
-    // Themes
+    /*
+    |--------------------------------------------------------------------------
+    | Package Management
+    |--------------------------------------------------------------------------
+    */
+    Route::apiResource('packages', PackageController::class)->except(['index', 'show']);
+    Route::get('/invitation/{invitationId}/package', [PackageController::class, 'getPackageByInvitationId']);
+
+    /*
+    |--------------------------------------------------------------------------
+    | Theme Management
+    |--------------------------------------------------------------------------
+    */
     Route::apiResource('themes', ThemeController::class)->except(['index', 'show']);
     Route::post('/themes/orderthemes', [ThemeController::class, 'getThemeByOrderId']);
+    Route::get('/invitation/{invitationId}/theme', [ThemeController::class, 'getThemeByInvitationId']);
 
-    // Backsounds
+    /*
+    |--------------------------------------------------------------------------
+    | Backsound Management
+    |--------------------------------------------------------------------------
+    */
     Route::apiResource('backsounds', BacksoundController::class)->except(['index', 'show']);
     
-    // Invitations
+    /*
+    |--------------------------------------------------------------------------
+    | Invitation Management
+    |--------------------------------------------------------------------------
+    */
     Route::prefix('invitations')->group(function () {
         Route::post('/', [InvitationController::class, 'store']);
         Route::get('/user', [InvitationController::class, 'showInvitationByUser']);
@@ -114,10 +159,18 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/{id}/complete', [InvitationController::class, 'completeInvitation']);
     });
 
-    // Guests
+    /*
+    |--------------------------------------------------------------------------
+    | Guest Management
+    |--------------------------------------------------------------------------
+    */
     Route::apiResource('guests', GuestController::class)->except(['index', 'show']);
 
-    // Payments
+    /*
+    |--------------------------------------------------------------------------
+    | Payment & Order Management
+    |--------------------------------------------------------------------------
+    */
     Route::prefix('payments')->group(function () {
         Route::post('/create', [PaymentController::class, 'createPayment']);
         Route::put('/update', [PaymentController::class, 'updatePayment']);
@@ -130,34 +183,51 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/orders', [OrderController::class, 'getOrders']);
     Route::get('/order/{order_id}', [OrderController::class, 'getOrder']);
 
-    // Main Info
+    /*
+    |--------------------------------------------------------------------------
+    | Main Info Management
+    |--------------------------------------------------------------------------
+    */
     Route::apiResource('main-infos', MainInfoController::class)->except(['show']);
     Route::post('/main-infos/photo', [MainInfoController::class, 'addOrUpdatePhoto']);
 
-    // Groom Info
+    /*
+    |--------------------------------------------------------------------------
+    | Groom & Bride Info Management
+    |--------------------------------------------------------------------------
+    */
     Route::apiResource('grooms', GroomController::class)->except(['show']);
-
-    // Bride Info
     Route::apiResource('brides', BrideController::class)->except(['show']);
     
-    // Events
+    /*
+    |--------------------------------------------------------------------------
+    | Event Management
+    |--------------------------------------------------------------------------
+    */
     Route::apiResource('events', EventController::class);
     Route::delete('events/bulk-delete', [EventController::class, 'bulkDelete']);
 
-    // Love Stories
+    /*
+    |--------------------------------------------------------------------------
+    | Love Story Management
+    |--------------------------------------------------------------------------
+    */
     Route::apiResource('love-stories', LoveStoryController::class);
     Route::delete('love-stories/bulk-delete', [LoveStoryController::class, 'bulkDelete']);
 
-    // Gift Infos
+    /*
+    |--------------------------------------------------------------------------
+    | Gift Info Management
+    |--------------------------------------------------------------------------
+    */
     Route::apiResource('gift-infos', GiftInfoController::class);
     Route::post('gift-infos/bulk-update', [GiftInfoController::class, 'bulkUpdate']);
 
-    // Gelleries
+    /*
+    |--------------------------------------------------------------------------
+    | Gallery Management
+    |--------------------------------------------------------------------------
+    */
     Route::apiResource('galleries', GalleryController::class)->except(['show']);
     Route::delete('/invitations/{invitationId}/galleries', [GalleryController::class, 'destroyAll']);
-    
-    // ADMIN
-    Route::put('/users/admin/{id}', [UserController::class, 'setAdmin']);
-    
-    Route::apiResource('users', UserController::class);
 });

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\Package;
+use App\Models\Invitation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
@@ -205,6 +206,41 @@ class PackageController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'Failed to update package',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
+    }
+
+    public function getPackageByInvitationId(String $invitationId)
+    {
+        try {
+            DB::beginTransaction();
+
+            $invitation = Invitation::with('order')->find($invitationId);
+
+            if (!$invitation) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Invitation not found'
+                ], 404);
+            }
+
+            $package = Package::find($invitation->order->package_id);
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Package retrieved successfully',
+                'data' => $package
+            ], 200);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to retrieve theme',
                 'error' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }

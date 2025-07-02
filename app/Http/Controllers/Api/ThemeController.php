@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Models\Order;
 use App\Models\Theme;
+use App\Models\Invitation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
@@ -118,29 +119,29 @@ class ThemeController extends Controller
      * Display the specified resource.
      */
     public function show(String $id)
-{
-    try {
-        $theme = Theme::findOrFail($id);
-        
-        return response()->json([
-            'status' => 'success',
-            'data' => [
-                'id' => $theme->id,
-                'name' => $theme->name,
-                'theme_category_id' => $theme->theme_category_id,
-                'link' => $theme->link,
-                'thumbnail' => $theme->thumbnail,
-                'thumbnail_url' => $theme->thumbnail_url,
-            ]
-        ]);
-    } catch (\Exception $e) {
-        return response()->json([
-            'status' => 'error',
-            'message' => 'Theme not found',
-            'error' => config('app.debug') ? $e->getMessage() : null
-        ], 404);
+    {
+        try {
+            $theme = Theme::findOrFail($id);
+            
+            return response()->json([
+                'status' => 'success',
+                'data' => [
+                    'id' => $theme->id,
+                    'name' => $theme->name,
+                    'theme_category_id' => $theme->theme_category_id,
+                    'link' => $theme->link,
+                    'thumbnail' => $theme->thumbnail,
+                    'thumbnail_url' => $theme->thumbnail_url,
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Theme not found',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 404);
+        }
     }
-}
 
     /**
      * Update the specified resource in storage.
@@ -280,6 +281,41 @@ class ThemeController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'Failed to get themes',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
+    }
+
+    public function getThemeByInvitationId(String $invitationId)
+    {
+        try {
+            DB::beginTransaction();
+
+            $invitation = Invitation::find($invitationId);
+
+            if (!$invitation) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Invitation not found'
+                ], 404);
+            }
+
+            $theme = Theme::with('themeCategory')->find($invitation->theme_id);
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Theme retrieved successfully',
+                'data' => $theme
+            ], 200);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to retrieve theme',
                 'error' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
