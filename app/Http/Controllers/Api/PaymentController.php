@@ -42,7 +42,9 @@ class PaymentController extends Controller
             $finalPrice = $package->price - ($package->price * $package->discount / 100);
         }
 
-        $orderId = 'ORDER-' . Str::uuid()->toString();
+        do {
+            $orderId = 'ORDER-' . strtoupper(Str::random(6));
+        } while (Order::where('order_id', $orderId)->exists());
 
         $order = Order::create([
             'user_id' => $user->id,

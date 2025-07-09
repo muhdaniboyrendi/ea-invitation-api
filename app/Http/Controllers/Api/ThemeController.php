@@ -33,6 +33,7 @@ class ThemeController extends Controller
                         'link' => $theme->link,
                         'thumbnail' => $theme->thumbnail,
                         'thumbnail_url' => $theme->thumbnail_url,
+                        'is_premium' => $theme->is_premium,
                         'theme_category' => $theme->themeCategory,
                         'created_at' => $theme->created_at,
                         'updated_at' => $theme->updated_at,
@@ -66,7 +67,8 @@ class ThemeController extends Controller
             'name' => 'required|string|max:255',
             'theme_category_id' => 'required|exists:theme_categories,id',
             'thumbnail' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'link' => 'nullable|string'
+            'link' => 'nullable|string',
+            'is_premium' => 'required|boolean'
         ]);
 
         if ($validator->fails()) {
@@ -92,7 +94,8 @@ class ThemeController extends Controller
                 'name' => $request->name,
                 'theme_category_id' => $request->theme_category_id,
                 'link' => $request->link,
-                'thumbnail' => $thumbnailPath
+                'thumbnail' => $thumbnailPath,
+                'is_premium' => $request->is_premium
             ]);
 
             $theme->thumbnail_url = $thumbnailPath ? url('storage/' . $thumbnailPath) : null;
@@ -132,6 +135,7 @@ class ThemeController extends Controller
                     'link' => $theme->link,
                     'thumbnail' => $theme->thumbnail,
                     'thumbnail_url' => $theme->thumbnail_url,
+                    'is_premium' => $theme->is_premium,
                 ]
             ]);
         } catch (\Exception $e) {
@@ -161,7 +165,8 @@ class ThemeController extends Controller
             'name' => 'required|string|max:255',
             'theme_category_id' => 'required|exists:theme_categories,id',
             'thumbnail' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'link' => 'nullable|string'
+            'link' => 'nullable|string',
+            'is_premium' => 'required|boolean'
         ]);
 
         if ($validator->fails()) {
@@ -190,6 +195,7 @@ class ThemeController extends Controller
             $theme->name = $request->name;
             $theme->theme_category_id = $request->theme_category_id;
             $theme->link = $request->link;
+            $theme->is_premium = $request->is_premium;
             $theme->save();
 
             DB::commit();
@@ -264,9 +270,14 @@ class ThemeController extends Controller
                 ], 404);
             }
 
+            // Asumsi: package_id 1 adalah paket gratis, hanya bisa akses tema gratis
             if ($order->package_id === 1) {
-                $themes = Theme::where('theme_category_id', 1)->with('themeCategory')->get();
+                $themes = Theme::where('theme_category_id', 1)
+                    ->where('is_premium', false)
+                    ->with('themeCategory')
+                    ->get();
             } else {
+                // Paket premium, bisa akses semua tema
                 $themes = Theme::with('themeCategory')->get();
             }
 
@@ -274,7 +285,18 @@ class ThemeController extends Controller
                 'status' => 'success',
                 'data' => [
                     'order_id' => $order->id,
-                    'themes' => $themes
+                    'themes' => $themes->map(function ($theme) {
+                        return [
+                            'id' => $theme->id,
+                            'name' => $theme->name,
+                            'theme_category_id' => $theme->theme_category_id,
+                            'link' => $theme->link,
+                            'thumbnail' => $theme->thumbnail,
+                            'thumbnail_url' => $theme->thumbnail_url,
+                            'is_premium' => $theme->is_premium,
+                            'theme_category' => $theme->themeCategory,
+                        ];
+                    })
                 ]
             ]);
         } catch (\Exception $e) {
@@ -307,7 +329,16 @@ class ThemeController extends Controller
             return response()->json([
                 'status' => 'success',
                 'message' => 'Theme retrieved successfully',
-                'data' => $theme
+                'data' => [
+                    'id' => $theme->id,
+                    'name' => $theme->name,
+                    'theme_category_id' => $theme->theme_category_id,
+                    'link' => $theme->link,
+                    'thumbnail' => $theme->thumbnail,
+                    'thumbnail_url' => $theme->thumbnail_url,
+                    'is_premium' => $theme->is_premium,
+                    'theme_category' => $theme->themeCategory
+                ]
             ], 200);
 
         } catch (\Exception $e) {
@@ -316,6 +347,76 @@ class ThemeController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'Failed to retrieve theme',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
+    }
+
+    /**
+     * Get free themes only
+     */
+    public function getFreeThemes()
+    {
+        try {
+            $themes = Theme::where('is_premium', false)
+                ->with('themeCategory')
+                ->get();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Free themes retrieved successfully',
+                'data' => $themes->map(function ($theme) {
+                    return [
+                        'id' => $theme->id,
+                        'name' => $theme->name,
+                        'theme_category_id' => $theme->theme_category_id,
+                        'link' => $theme->link,
+                        'thumbnail' => $theme->thumbnail,
+                        'thumbnail_url' => $theme->thumbnail_url,
+                        'is_premium' => $theme->is_premium,
+                        'theme_category' => $theme->themeCategory,
+                    ];
+                })
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Error fetching free themes',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
+    }
+
+    /**
+     * Get premium themes only
+     */
+    public function getPremiumThemes()
+    {
+        try {
+            $themes = Theme::where('is_premium', true)
+                ->with('themeCategory')
+                ->get();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Premium themes retrieved successfully',
+                'data' => $themes->map(function ($theme) {
+                    return [
+                        'id' => $theme->id,
+                        'name' => $theme->name,
+                        'theme_category_id' => $theme->theme_category_id,
+                        'link' => $theme->link,
+                        'thumbnail' => $theme->thumbnail,
+                        'thumbnail_url' => $theme->thumbnail_url,
+                        'is_premium' => $theme->is_premium,
+                        'theme_category' => $theme->themeCategory,
+                    ];
+                })
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Error fetching premium themes',
                 'error' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }

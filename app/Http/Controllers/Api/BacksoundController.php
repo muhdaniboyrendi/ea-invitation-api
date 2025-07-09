@@ -41,7 +41,7 @@ class BacksoundController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'Failed to retrieve backsounds',
-                'error' => config('app.debug') ? $e->getMessage() : null
+                'errors' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
     }
@@ -127,7 +127,7 @@ class BacksoundController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'Failed to create music. Please try again.',
-                'error' => config('app.debug') ? $e->getMessage() : null
+                'errors' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
     }
@@ -165,7 +165,7 @@ class BacksoundController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'Failed to retrieve backsound',
-                'error' => config('app.debug') ? $e->getMessage() : null
+                'errors' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
     }
@@ -273,7 +273,7 @@ class BacksoundController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'Failed to update backsound. Please try again.',
-                'error' => config('app.debug') ? $e->getMessage() : null
+                'errors' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
     }
@@ -328,7 +328,7 @@ class BacksoundController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'Failed to delete backsound. Please try again.',
-                'error' => config('app.debug') ? $e->getMessage() : null
+                'errors' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
     }

@@ -15,6 +15,7 @@ class Theme extends Model
         'theme_category_id',
         'link',
         'thumbnail',
+        'is_premium'
     ];
 
     public function invitations(): HasMany

@@ -18,7 +18,11 @@ class CategorySeeder extends Seeder
         ]);
 
         ThemeCategory::create([
-            'name' => 'Premium',
+            'name' => 'Modern',
+        ]);
+
+        ThemeCategory::create([
+            'name' => 'Social',
         ]);
     }
 }

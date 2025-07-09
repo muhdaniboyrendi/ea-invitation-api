@@ -4,7 +4,10 @@ namespace App\Http\Controllers\Api;
 
 use Illuminate\Http\Request;
 use App\Models\ThemeCategory;
+use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
 
 class ThemeCategoryController extends Controller
 {
@@ -18,13 +21,13 @@ class ThemeCategoryController extends Controller
             
             return response()->json([
                 'status' => true,
-                'message' => 'Theme Catefories retrieved successfully',
+                'message' => 'Theme Categories retrieved successfully',
                 'data' => $categories
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Error fetching packages: ',
+                'message' => 'Error fetching categories: ',
                 'error' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
@@ -35,7 +38,52 @@ class ThemeCategoryController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $user = Auth::user();
+
+        if ($user->role != 'admin') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Forbidden access'
+            ], 403);
+        }
+        
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string|max:1000',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $theme = ThemeCategory::create([
+                'name' => $request->name,
+                'description' => $request->description,
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Theme category created successfully',
+                'data' => $theme
+            ], 201);
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to create theme category',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
     }
 
     /**
@@ -43,15 +91,73 @@ class ThemeCategoryController extends Controller
      */
     public function show(string $id)
     {
-        //
+        try {
+            $themeCategory = ThemeCategory::findOrFail($id);
+            
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Theme category retrieved successfully',
+                'data' => $themeCategory
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Theme category not found',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 404);
+        }
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, ThemeCategory $themeCategory)
     {
-        //
+        $user = Auth::user();
+
+        if ($user->role != 'admin') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Forbidden access'
+            ], 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string|max:1000',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $themeCategory->name = $request->name;
+            $themeCategory->description = $request->description;
+            $themeCategory->save();
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Theme category updated successfully',
+                'data' => $themeCategory
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to update theme category',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
     }
 
     /**
@@ -59,6 +165,36 @@ class ThemeCategoryController extends Controller
      */
     public function destroy(string $id)
     {
-        //
+        $user = Auth::user();
+
+        if ($user->role != 'admin') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Forbidden access'
+            ], 403);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $themeCategory = ThemeCategory::findOrFail($id);
+            
+            $themeCategory->delete();
+
+            DB::commit();
+            
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Theme category deleted successfully'
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to delete theme category',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
     }
 }

@@ -71,6 +71,11 @@ Route::prefix('themes')->group(function () {
     Route::get('/{id}', [ThemeController::class, 'show']);
 });
 
+// Theme Categories (Public)
+Route::prefix('categories')->group(function () {
+    Route::get('/', [ThemeCategoryController::class, 'index']);
+});
+
 // Backsounds (Public)
 Route::prefix('backsounds')->group(function () {
     Route::get('/', [BacksoundController::class, 'index']);
@@ -137,6 +142,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('themes', ThemeController::class)->except(['index', 'show']);
     Route::post('/themes/orderthemes', [ThemeController::class, 'getThemeByOrderId']);
     Route::get('/invitation/{invitationId}/theme', [ThemeController::class, 'getThemeByInvitationId']);
+
+    /*
+    |--------------------------------------------------------------------------
+    | Theme Category Management
+    |--------------------------------------------------------------------------
+    */
+    Route::apiResource('categories', ThemeCategoryController::class)->except(['index', 'show']);
 
     /*
     |--------------------------------------------------------------------------
