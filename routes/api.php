@@ -149,6 +149,11 @@ Route::middleware('auth:sanctum')->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::apiResource('categories', ThemeCategoryController::class)->except(['index', 'show']);
+    // Route::prefix('categories')->group(function () {
+    //     Route::post('/', [InvitationController::class, 'store']);
+    //     Route::put('/{id}', [InvitationController::class, 'update']);
+    //     Route::delete('/{id}', [InvitationController::class, 'destroy']);
+    // });
 
     /*
     |--------------------------------------------------------------------------

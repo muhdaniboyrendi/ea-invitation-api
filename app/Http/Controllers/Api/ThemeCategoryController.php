@@ -111,7 +111,7 @@ class ThemeCategoryController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, ThemeCategory $themeCategory)
+    public function update(Request $request, string $id)
     {
         $user = Auth::user();
 
@@ -134,9 +134,11 @@ class ThemeCategoryController extends Controller
                 'errors' => $validator->errors()
             ], 422);
         }
-
+        
         try {
             DB::beginTransaction();
+
+            $themeCategory = ThemeCategory::findOrFail($id);
 
             $themeCategory->name = $request->name;
             $themeCategory->description = $request->description;
