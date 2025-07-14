@@ -182,7 +182,7 @@ class GuestController extends Controller
         try {
             DB::beginTransaction();
 
-            $guests = Guest::where('invitation_id', $validated['invitation_id'])->get();
+            $guests = Guest::where('invitation_id', $validated['invitation_id'])->with(['invitation'])->get();
 
             DB::commit();
 

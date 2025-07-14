@@ -86,4 +86,44 @@ class Invitation extends Model
     {
         return $this->hasMany(Comment::class);
     }
+
+    /**
+     * Generate unique slug berdasarkan nama groom dan bride
+     */
+    public function generateUniqueSlug()
+    {
+        if (empty($this->groom) && empty($this->bride)) {
+            $baseSlug = 'invitation-' . time();
+        } elseif (empty($this->groom)) {
+            $baseSlug = $this->createSlug($this->bride);
+        } elseif (empty($this->bride)) {
+            $baseSlug = $this->createSlug($this->groom);
+        } else {
+            $baseSlug = $this->createSlug($this->groom . ' & ' . $this->bride);
+        }
+        
+        $slug = $baseSlug;
+        $counter = 1;
+        
+        while (static::where('slug', $slug)->where('id', '!=', $this->id)->exists()) {
+            $slug = $baseSlug . '-' . $counter;
+            $counter++;
+        }
+        
+        return $slug;
+    }
+
+    /**
+     * Convert string menjadi slug format
+     */
+    private function createSlug($string)
+    {
+        $slug = strtolower(trim($string));
+        $slug = preg_replace('/\s+/', '-', $slug);
+        $slug = preg_replace('/[^a-z0-9\-]/', '', $slug);
+        $slug = preg_replace('/-+/', '-', $slug);
+        $slug = trim($slug, '-');
+        
+        return $slug;
+    }
 }

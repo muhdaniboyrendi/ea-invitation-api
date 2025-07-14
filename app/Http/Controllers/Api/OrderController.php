@@ -8,6 +8,17 @@ use Illuminate\Support\Facades\Auth;
 
 class OrderController extends Controller
 {
+    public function show(string $id)
+    {
+        $order = Order::find($id);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Ok',
+            'data' => $order
+        ]);
+    }
+
     public function getOrderStatus($orderId)
     {
         $order = Order::where('order_id', $orderId)->first();
@@ -55,24 +66,6 @@ class OrderController extends Controller
             'status' => true,
             'message' => 'Ok',
             'data' => $orders
-        ]);
-    }
-
-    public function getOrderDetail(string $id)
-    {
-        if (Auth::user()->role != 'admin') {
-            return response()->json([
-                'status' => false,
-                'message' => 'Forbidden access'
-            ], 403);
-        }
-
-        $order = Order::with('user', 'package', 'invitation')->find($id);
-
-        return response()->json([
-            'status' => true,
-            'message' => 'Ok',
-            'data' => $order
         ]);
     }
 

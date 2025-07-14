@@ -120,7 +120,7 @@ class InvitationController extends Controller
         try {
             DB::beginTransaction();
 
-            $invitation = Invitation::with(['order', 'theme'])->find($id);
+            $invitation = Invitation::with(['order', 'theme', 'guests'])->find($id);
 
             if (!$invitation) {
                 return response()->json([
@@ -341,6 +341,11 @@ class InvitationController extends Controller
     {
         try {
             $invitation = Invitation::findOrFail($id);
+            
+            if (empty($invitation->slug)) {
+                $invitation->slug = $invitation->generateUniqueSlug();
+            }
+            
             $invitation->status = 'published';
             $invitation->save();
 

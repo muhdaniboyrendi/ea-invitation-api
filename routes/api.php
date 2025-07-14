@@ -149,11 +149,6 @@ Route::middleware('auth:sanctum')->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::apiResource('categories', ThemeCategoryController::class)->except(['index', 'show']);
-    // Route::prefix('categories')->group(function () {
-    //     Route::post('/', [InvitationController::class, 'store']);
-    //     Route::put('/{id}', [InvitationController::class, 'update']);
-    //     Route::delete('/{id}', [InvitationController::class, 'destroy']);
-    // });
 
     /*
     |--------------------------------------------------------------------------
@@ -198,6 +193,7 @@ Route::middleware('auth:sanctum')->group(function () {
     
     // Orders
     Route::get('/orders', [OrderController::class, 'getOrders']);
+    Route::get('/orders/{id}', [OrderController::class, 'show']);
     Route::get('/order/{order_id}', [OrderController::class, 'getOrder']);
 
     /*
