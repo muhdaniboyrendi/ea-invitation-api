@@ -364,6 +364,39 @@ class InvitationController extends Controller
         }
     }
 
+    public function getInvitationBySlug(string $slug)
+    {
+        try {
+            DB::beginTransaction();
+
+            $invitation = Invitation::where('slug', $slug)->with(['theme'])->first();
+
+            if (!$invitation) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Invitation not found'
+                ], 404);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Invitation retrieved successfully',
+                'data' => $invitation
+            ], 200);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to retrieve invitation',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
+    }
+
     public function getInvitationDetailBySlug(string $slug)
     {
         try {
