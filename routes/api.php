@@ -103,6 +103,7 @@ Route::get('/invitations/{invitationId}/events', [EventController::class, 'getEv
 Route::get('/invitations/{invitationId}/love-stories', [LoveStoryController::class, 'getStoriesByInvitation']);
 Route::get('/invitations/{invitationId}/gift-infos', [GiftInfoController::class, 'getGiftsByInvitation']);
 Route::get('/invitations/{invitationId}/galleries', [GalleryController::class, 'show']);
+Route::get('/invitations/{slug}/all', [InvitationController::class, 'getInvitationDetailBySlug']);
 
 /*
 |--------------------------------------------------------------------------
