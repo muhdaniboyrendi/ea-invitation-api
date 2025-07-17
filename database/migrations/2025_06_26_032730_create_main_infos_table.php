@@ -14,7 +14,8 @@ return new class extends Migration
         Schema::create('main_infos', function (Blueprint $table) {
             $table->id();
             $table->foreignId('invitation_id')->constrained()->onDelete('cascade');
-            $table->foreignId('backsound_id')->constrained()->onDelete('set null')->nullable();
+            $table->unsignedBigInteger('backsound_id')->nullable();
+            
             $table->string('main_photo')->nullable();
             $table->date('wedding_date');
             $table->time('wedding_time');

@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('invitation_id')->constrained()->onDelete('cascade');
             $table->string('name');
-            $table->string('slug')->unique()->nullable()->after('name');
+            $table->string('slug')->unique()->nullable();
             $table->string('phone')->nullable();
             $table->boolean('is_group')->default(false);
             $table->enum('attendance_status', ['pending', 'attending', 'not_attending'])->default('pending');

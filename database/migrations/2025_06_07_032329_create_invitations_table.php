@@ -13,9 +13,12 @@ return new class extends Migration
     {
         Schema::create('invitations', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('theme_id')->nullable();
+
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->foreignId('order_id')->constrained()->onDelete('cascade');
-            $table->foreignId('theme_id')->constrained()->onDelete('set null')->nullable();
+            // $table->foreignId('theme_id')->constrained()->onDelete('set null')->nullable();
+
             $table->enum('status', ['draft', 'published', 'expired'])->default('draft');
             $table->date('expiry_date')->nullable();
             $table->string('groom')->nullable();
