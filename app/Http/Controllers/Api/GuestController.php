@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\Guest;
+use App\Models\Invitation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
@@ -203,82 +204,114 @@ class GuestController extends Controller
         }
     }
 
-    public function getGuestBySlug($slug)
+    // public function getGuestBySlug($slug)
+    // {
+    //     $validator = Validator::make(['slug' => $slug], [
+    //         'slug' => 'required|string|max:255',
+    //     ]);
+
+    //     if ($validator->fails()) {
+    //         return response()->json([
+    //             'status' => 'error',
+    //             'message' => 'Validation failed',
+    //             'errors' => $validator->errors()
+    //         ], 422);
+    //     }
+
+    //     $guest = Guest::where('slug', $slug)->first();
+
+    //     if (!$guest) {
+    //         return response()->json([
+    //             'status' => 'error',
+    //             'message' => 'Guest not found'
+    //         ], 404);
+    //     }
+
+    //     return response()->json([
+    //         'status' => 'success',
+    //         'data' => $guest
+    //     ], 200);
+    // }
+
+    public function checkGuest($slug, Request $request)
     {
-        $validator = Validator::make(['slug' => $slug], [
-            'slug' => 'required|string|max:255',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Validation failed',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        $guest = Guest::where('slug', $slug)->first();
-
-        if (!$guest) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Guest not found'
-            ], 404);
-        }
-
-        return response()->json([
-            'status' => 'success',
-            'data' => $guest
-        ], 200);
-    }
-
-    public function rsvp(Request $request, $slug)
-    {
-        $validator = Validator::make($request->all(), [
-            'attendance_status' => 'required|in:pending,attending,not_attending',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Validation failed',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        $guest = Guest::where('slug', $slug)->first();
-
-        if (!$guest) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Guest not found'
-            ], 404);
-        }
-
-        $validated = $validator->validated();
-
         try {
-            DB::beginTransaction();
-
-            $guest->attendance_status = $validated['attendance_status'];
-            $guest->save();
-
-            DB::commit();
-
+            $guest = $request->query('guest');
+    
+            $invitation = Invitation::where('slug', $slug)->first();
+    
+            if (!$invitation) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Invitation not found'
+                ], 404);
+            }
+    
+            $guests = Guest::where('invitation_id', $invitation->id)->get();
+    
+            $guestChecked = $guests->where('slug', $guest)->first();
+    
             return response()->json([
                 'status' => 'success',
-                'message' => 'Attendance status updated successfully',
-                'data' => $guest
+                'message' => 'Guest check successful',
+                'data' => $guestChecked
             ], 200);
-
         } catch (\Exception $e) {
-            DB::rollBack();
-
             return response()->json([
                 'status' => 'error',
-                'message' => 'Failed to update attendance status',
+                'message' => 'Failed to check guest',
                 'error' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
     }
+
+    // public function rsvp(Request $request, $slug)
+    // {
+    //     $validator = Validator::make($request->all(), [
+    //         'attendance_status' => 'required|in:pending,attending,not_attending',
+    //     ]);
+
+    //     if ($validator->fails()) {
+    //         return response()->json([
+    //             'status' => 'error',
+    //             'message' => 'Validation failed',
+    //             'errors' => $validator->errors()
+    //         ], 422);
+    //     }
+
+    //     $guest = Guest::where('slug', $slug)->first();
+
+    //     if (!$guest) {
+    //         return response()->json([
+    //             'status' => 'error',
+    //             'message' => 'Guest not found'
+    //         ], 404);
+    //     }
+
+    //     $validated = $validator->validated();
+
+    //     try {
+    //         DB::beginTransaction();
+
+    //         $guest->attendance_status = $validated['attendance_status'];
+    //         $guest->save();
+
+    //         DB::commit();
+
+    //         return response()->json([
+    //             'status' => 'success',
+    //             'message' => 'Attendance status updated successfully',
+    //             'data' => $guest
+    //         ], 200);
+
+    //     } catch (\Exception $e) {
+    //         DB::rollBack();
+
+    //         return response()->json([
+    //             'status' => 'error',
+    //             'message' => 'Failed to update attendance status',
+    //             'error' => config('app.debug') ? $e->getMessage() : null
+    //         ], 500);
+    //     }
+    // }
 }

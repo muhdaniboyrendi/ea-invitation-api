@@ -84,8 +84,9 @@ Route::prefix('backsounds')->group(function () {
 
 // Guests (Public)
 Route::get('/guests/{invitationId}', [GuestController::class, 'getGuestsByInvitationId']);
-Route::get('/guest/{slug}', [GuestController::class, 'getGuestBySlug']);
-Route::put('/rsvp/{slug}', [GuestController::class, 'rsvp']);
+Route::get('/guest/{slug}', [GuestController::class, 'checkGuest']);
+// Route::get('/guest/{slug}', [GuestController::class, 'getGuestBySlug']);
+// Route::put('/rsvp/{slug}', [GuestController::class, 'rsvp']);
 
 // Payment Webhooks (Public)
 Route::prefix('payments')->group(function () {
