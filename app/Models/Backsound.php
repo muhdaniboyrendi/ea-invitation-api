@@ -16,6 +16,8 @@ class Backsound extends Model
         'thumbnail',
     ];
 
+    protected $appends = ['audioUrl', 'thumbnailUrl'];
+
     public function getAudioUrlAttribute(): ?string
     {
         return $this->audio ? asset('storage/' . $this->audio) : null;

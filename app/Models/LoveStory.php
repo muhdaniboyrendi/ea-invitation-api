@@ -24,6 +24,7 @@ class LoveStory extends Model
     ];
 
     protected $appends = [
+        'thumbnailUrl',
         'formatted_date',
         'short_description',
         'word_count',

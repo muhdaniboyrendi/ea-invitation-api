@@ -19,6 +19,8 @@ class GroomInfo extends Model
         'groom_photo',
     ];
 
+    protected $appends = ['groomPhotoUrl'];
+
     public function getGroomPhotoUrlAttribute(): ?string
     {
         return $this->groom_photo ? asset('storage/' . $this->groom_photo) : null;

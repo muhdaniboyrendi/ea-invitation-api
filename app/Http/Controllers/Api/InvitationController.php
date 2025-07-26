@@ -402,7 +402,7 @@ class InvitationController extends Controller
         try {
             DB::beginTransaction();
 
-            $invitation = Invitation::where('slug', $slug)->with(['theme', 'guests', 'mainInfo', 'groomInfo', 'brideInfo', 'events', 'loveStories', 'galleryImages', 'giftInfo', 'comments'])->first();
+            $invitation = Invitation::where('slug', $slug)->with(['theme', 'guests', 'mainInfo.backsound', 'groomInfo', 'brideInfo', 'events', 'loveStories', 'galleryImages', 'giftInfo', 'comments'])->first();
 
             if (!$invitation) {
                 return response()->json([

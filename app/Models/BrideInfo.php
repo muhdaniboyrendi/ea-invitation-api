@@ -19,6 +19,8 @@ class BrideInfo extends Model
         'bride_photo',
     ];
 
+    protected $appends = ['bridePhotoUrl'];
+
     public function getBridePhotoUrlAttribute(): ?string
     {
         return $this->bride_photo ? asset('storage/' . $this->bride_photo) : null;
