@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\{
     EventController,
     GroomController,
     GuestController,
+    CommentController,
     OrderController,
     ThemeController,
     GalleryController,
@@ -83,10 +84,12 @@ Route::prefix('backsounds')->group(function () {
 });
 
 // Guests (Public)
+Route::put('/guests/{id}/rsvp', [GuestController::class, 'updateAttendance']);
 Route::get('/guests/{invitationId}', [GuestController::class, 'getGuestsByInvitationId']);
 Route::get('/guest/{slug}', [GuestController::class, 'checkGuest']);
-// Route::get('/guest/{slug}', [GuestController::class, 'getGuestBySlug']);
-// Route::put('/rsvp/{slug}', [GuestController::class, 'rsvp']);
+
+// Comments (Public)
+Route::post('/comments', [CommentController::class, 'store']);
 
 // Payment Webhooks (Public)
 Route::prefix('payments')->group(function () {

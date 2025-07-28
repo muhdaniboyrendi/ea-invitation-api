@@ -204,35 +204,6 @@ class GuestController extends Controller
         }
     }
 
-    // public function getGuestBySlug($slug)
-    // {
-    //     $validator = Validator::make(['slug' => $slug], [
-    //         'slug' => 'required|string|max:255',
-    //     ]);
-
-    //     if ($validator->fails()) {
-    //         return response()->json([
-    //             'status' => 'error',
-    //             'message' => 'Validation failed',
-    //             'errors' => $validator->errors()
-    //         ], 422);
-    //     }
-
-    //     $guest = Guest::where('slug', $slug)->first();
-
-    //     if (!$guest) {
-    //         return response()->json([
-    //             'status' => 'error',
-    //             'message' => 'Guest not found'
-    //         ], 404);
-    //     }
-
-    //     return response()->json([
-    //         'status' => 'success',
-    //         'data' => $guest
-    //     ], 200);
-    // }
-
     public function checkGuest($slug, Request $request)
     {
         try {
@@ -265,53 +236,49 @@ class GuestController extends Controller
         }
     }
 
-    // public function rsvp(Request $request, $slug)
-    // {
-    //     $validator = Validator::make($request->all(), [
-    //         'attendance_status' => 'required|in:pending,attending,not_attending',
-    //     ]);
+    /**
+     * Update the specified resource in storage.
+     */
+    public function updateAttendance(Request $request, string $id)
+    {
+        $validator = Validator::make($request->all(), [
+            'attendance_status' => 'required|in:attending,not_attending,pending',
+        ]);
 
-    //     if ($validator->fails()) {
-    //         return response()->json([
-    //             'status' => 'error',
-    //             'message' => 'Validation failed',
-    //             'errors' => $validator->errors()
-    //         ], 422);
-    //     }
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
 
-    //     $guest = Guest::where('slug', $slug)->first();
+        $validated = $validator->validated();
 
-    //     if (!$guest) {
-    //         return response()->json([
-    //             'status' => 'error',
-    //             'message' => 'Guest not found'
-    //         ], 404);
-    //     }
+        try {
+            DB::beginTransaction();
 
-    //     $validated = $validator->validated();
+            $guest = Guest::findOrFail($id);
+            $guest->update([
+                'attendance_status' => $validated['attendance_status'] ?? $guest->attendance_status,
+            ]);
 
-    //     try {
-    //         DB::beginTransaction();
+            DB::commit();
 
-    //         $guest->attendance_status = $validated['attendance_status'];
-    //         $guest->save();
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Guest updated successfully',
+                'data' => $guest
+            ], 200);
 
-    //         DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
 
-    //         return response()->json([
-    //             'status' => 'success',
-    //             'message' => 'Attendance status updated successfully',
-    //             'data' => $guest
-    //         ], 200);
-
-    //     } catch (\Exception $e) {
-    //         DB::rollBack();
-
-    //         return response()->json([
-    //             'status' => 'error',
-    //             'message' => 'Failed to update attendance status',
-    //             'error' => config('app.debug') ? $e->getMessage() : null
-    //         ], 500);
-    //     }
-    // }
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to update guest',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
+    }
 }
