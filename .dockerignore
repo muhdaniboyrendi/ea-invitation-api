@@ -1,0 +1,15 @@
+.git
+.gitignore
+README.md
+.env
+.env.example
+.dockerignore
+Dockerfile
+docker-compose.yml
+node_modules
+npm-debug.log
+vendor
+storage/logs/*
+!storage/logs/.gitkeep
+bootstrap/cache/*
+!bootstrap/cache/.gitkeep
