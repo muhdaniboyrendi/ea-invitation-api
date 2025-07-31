@@ -1,3 +1,4 @@
+# /var/www/ea-invitation-api/docker-compose.yml
 version: '3.8'
 
 services:
@@ -5,72 +6,62 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: eainvitation-api
+    container_name: ea-invitation-api
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - ./:/var/www
+      - ./storage:/var/www/storage
+    networks:
+      - app-network
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=true
+    env_file:
+      - .env.production
+
+  nginx:
+    image: nginx:alpine
+    container_name: ea-invitation-api-nginx
     restart: unless-stopped
     ports:
-      - "80:80"
-      - "443:443"
-    environment:
-      - APP_NAME=EAInvitationAPI
-      - APP_ENV=production
-      - APP_DEBUG=false
-      - APP_URL=https://eainvitaiton.com
-      - DB_CONNECTION=mysql
-      - DB_HOST=db
-      - DB_PORT=3306
-      - DB_DATABASE=${DB_DATABASE}
-      - DB_USERNAME=${DB_USERNAME}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
-      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
-      - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI}
-      - MIDTRANS_SERVER_KEY=${MIDTRANS_SERVER_KEY}
-      - MIDTRANS_CLIENT_KEY=${MIDTRANS_CLIENT_KEY}
-      - MIDTRANS_IS_PRODUCTION=false
-      - MIDTRANS_MERCHANT_ID=${MIDTRANS_MERCHANT_ID}
-      - CACHE_DRIVER=redis
-      - SESSION_DRIVER=redis
-      - QUEUE_CONNECTION=redis
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
+      - "8001:80"
     volumes:
-      - ./storage:/var/www/html/storage
-      - ./public:/var/www/html/public
-      - ./docker/ssl:/etc/nginx/ssl
+      - ./:/var/www
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
     depends_on:
-      - db
-      - redis
+      - app
     networks:
-      - eainvitation-network
+      - app-network
 
-  db:
+  mysql:
     image: mysql:8.0
-    container_name: eainvitation-db
+    container_name: ea-invitation-api-mysql
     restart: unless-stopped
     environment:
-      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
-      - MYSQL_DATABASE=${DB_DATABASE}
-      - MYSQL_USER=${DB_USERNAME}
-      - MYSQL_PASSWORD=${DB_PASSWORD}
+      MYSQL_DATABASE: ea_invitation_api
+      MYSQL_ROOT_PASSWORD: your_root_password
+      MYSQL_USER: ea_user
+      MYSQL_PASSWORD: your_password
     volumes:
       - mysql_data:/var/lib/mysql
     ports:
-      - "3306:3306"
+      - "3307:3306"
     networks:
-      - eainvitation-network
+      - app-network
 
   redis:
-    image: redis:7-alpine
-    container_name: eainvitation-redis
+    image: redis:alpine
+    container_name: ea-invitation-api-redis
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      - "6380:6379"
     networks:
-      - eainvitation-network
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
 
 volumes:
   mysql_data:
-
-networks:
-  eainvitation-network:
-    driver: bridge
