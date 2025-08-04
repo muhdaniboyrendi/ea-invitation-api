@@ -1,78 +1,73 @@
 version: '3.8'
 
 services:
-  # Laravel API Service
   ea-invitation-api:
     build:
-      context: ./backend
+      context: .
       dockerfile: Dockerfile
     container_name: ea-invitation-api
     restart: unless-stopped
-    working_dir: /var/www/html
+    ports:
+      - "8000:80"
     volumes:
-      - ./backend/ea-invitation-api:/var/www/html
-      - ./logs/laravel:/var/www/html/storage/logs
+      - ./storage:/var/www/storage
+      - ./bootstrap/cache:/var/www/bootstrap/cache
     environment:
+      - APP_NAME=EA_Invitation_API
       - APP_ENV=production
+      - APP_KEY=${APP_KEY}
       - APP_DEBUG=false
+      - APP_URL=https://api.eainvitaiton.com
+      - DB_CONNECTION=mysql
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI}
+      - MIDTRANS_SERVER_KEY=${MIDTRANS_SERVER_KEY}
+      - MIDTRANS_CLIENT_KEY=${MIDTRANS_CLIENT_KEY}
+      - MIDTRANS_IS_PRODUCTION=${MIDTRANS_IS_PRODUCTION}
+      - MIDTRANS_MERCHANT_ID=${MIDTRANS_MERCHANT_ID}
     depends_on:
-      - mysql
+      - db
       - redis
     networks:
       - ea-invitation-network
 
-  # MySQL Database
-  mysql:
+  db:
     image: mysql:8.0
-    container_name: ea-invitation-mysql
+    container_name: ea-invitation-db
     restart: unless-stopped
+    ports:
+      - "3306:3306"
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
       MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
       MYSQL_USER: ${DB_USERNAME}
       MYSQL_PASSWORD: ${DB_PASSWORD}
     volumes:
-      - ./mysql/data:/var/lib/mysql
-      - ./mysql/my.cnf:/etc/mysql/my.cnf
-    ports:
-      - "3306:3306"
+      - db_data:/var/lib/mysql
     networks:
       - ea-invitation-network
 
-  # Redis Cache
   redis:
     image: redis:7-alpine
     container_name: ea-invitation-redis
     restart: unless-stopped
-    volumes:
-      - ./redis/data:/data
     ports:
       - "6379:6379"
+    volumes:
+      - redis_data:/data
     networks:
       - ea-invitation-network
 
-  # Nginx Reverse Proxy
-  nginx:
-    image: nginx:alpine
-    container_name: ea-invitation-nginx
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/conf.d:/etc/nginx/conf.d
-      - ./nginx/ssl:/etc/nginx/ssl
-      - ./logs/nginx:/var/log/nginx
-      - /var/www/ea-invitation/backend/ea-invitation-api/public:/var/www/html/public
-    depends_on:
-      - ea-invitation-api
-    networks:
-      - ea-invitation-network
+volumes:
+  db_data:
+  redis_data:
 
 networks:
   ea-invitation-network:
     driver: bridge
-
-volumes:
-  mysql_data:
-  redis_data:

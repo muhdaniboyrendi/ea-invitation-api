@@ -7,50 +7,42 @@ RUN apt-get update && apt-get install -y \
     libpng-dev \
     libonig-dev \
     libxml2-dev \
-    libzip-dev \
     zip \
     unzip \
-    nginx \
+    libzip-dev \
     supervisor \
+    nginx \
     && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip
 
-# Install Composer
+# Get latest Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Install Node.js and npm (jika dibutuhkan untuk asset compilation)
-RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
-    && apt-get install -y nodejs
+# Set working directory
+WORKDIR /var/www
 
-# Create application directory
-WORKDIR /var/www/html
+# Copy existing application directory contents
+COPY . /var/www
 
-# Copy composer files first for better caching
-COPY ea-invitation-api/composer.json ea-invitation-api/composer.lock ./
+# Copy existing application directory permissions
+COPY --chown=www-data:www-data . /var/www
 
 # Install PHP dependencies
-RUN composer install --no-dev --optimize-autoloader --no-scripts
-
-# Copy application files
-COPY ea-invitation-api/ .
-
-# Set proper permissions
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
-RUN chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
+RUN composer install --no-dev --optimize-autoloader
 
 # Copy nginx configuration
-COPY nginx/laravel.conf /etc/nginx/sites-available/default
+COPY docker/nginx/default.conf /etc/nginx/sites-available/default
 
 # Copy supervisor configuration
-COPY supervisor/laravel.conf /etc/supervisor/conf.d/laravel.conf
+COPY docker/supervisor/laravel-worker.conf /etc/supervisor/conf.d/laravel-worker.conf
 
-# Generate application key and run optimizations
-RUN php artisan key:generate --force
-RUN php artisan config:cache
-RUN php artisan route:cache
-RUN php artisan view:cache
+# Copy entrypoint script
+COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
-# Expose port
+# Change current user to www
+USER www-data
+
+# Expose port 9000 and start php-fpm server
 EXPOSE 80
 
-# Start supervisor
-CMD ["/usr/bin/supervisord", "-n", "-c", "/etc/supervisor/supervisord.conf"]
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
