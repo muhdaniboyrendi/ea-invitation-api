@@ -17,7 +17,7 @@ class UserSeeder extends Seeder
             'name' => 'Muhdani Boyrendi Erlan Azhari',
             'email' => 'erlanazrdev@gmail.com',
             'phone' => '082220633024',
-            // 'password' => 'AkuLali87',
+            // 'password' => '12345678',
             'role' => 'admin',
         ]);
     }
