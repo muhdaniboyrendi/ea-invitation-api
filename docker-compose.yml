@@ -1,3 +1,4 @@
+version: '3.8'
 services:
   app:
     build:
@@ -6,40 +7,57 @@ services:
     container_name: ea-invitation-api
     restart: unless-stopped
     working_dir: /var/www/html
-    volumes:
-      - .:/var/www/html
-      - ./storage:/var/www/html/storage
+    # ❌ Hapus volume binding di production untuk security
+    # volumes:
+    #   - .:/var/www/html
+    #   - ./storage:/var/www/html/storage
     ports:
       - "8000:80"
-    environment:
-      - APP_ENV=production
-      - APP_DEBUG=true
-      - DB_HOST=mysql
-      - DB_DATABASE=ea_invitation
-      - DB_USERNAME=ea_user
-      - DB_PASSWORD=ea_password
-      - REDIS_HOST=redis
+    env_file:
+      - .env.production
     depends_on:
-      - mysql
-      - redis
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
     networks:
       - ea-network
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
 
   mysql:
     image: mysql:8.0
     container_name: ea-mysql
     restart: unless-stopped
     environment:
-      MYSQL_DATABASE: ea_invitation
-      MYSQL_USER: ea_user
-      MYSQL_PASSWORD: ea_password
-      MYSQL_ROOT_PASSWORD: ea_root_password
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
     volumes:
       - mysql_data:/var/lib/mysql
     ports:
-      - "3306:3306"
+      - "127.0.0.1:3306:3306"  # Bind hanya ke localhost
     networks:
       - ea-network
+    # Health check untuk MySQL
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
 
   redis:
     image: redis:7-alpine
@@ -48,13 +66,17 @@ services:
     volumes:
       - redis_data:/data
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"  # Bind hanya ke localhost
     networks:
       - ea-network
+    # Redis configuration
+    command: redis-server --appendonly yes --maxmemory 128mb --maxmemory-policy allkeys-lru
 
 volumes:
   mysql_data:
+    driver: local
   redis_data:
+    driver: local
 
 networks:
   ea-network:
