@@ -5,8 +5,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: laravel-app
-    container_name: laravel-app
+    image: ea-invitation-api
+    container_name: ea-invitation-api
     restart: unless-stopped
     working_dir: /var/www
     volumes:
@@ -17,7 +17,7 @@ services:
 
   webserver:
     image: nginx:alpine
-    container_name: laravel-webserver
+    container_name: ea-invitation-webserver
     restart: unless-stopped
     ports:
       - "80:80"
@@ -31,13 +31,13 @@ services:
 
   db:
     image: mysql:8.0
-    container_name: laravel-db
+    container_name: ea-invitation-db
     restart: unless-stopped
     environment:
-      MYSQL_DATABASE: laravel_db
-      MYSQL_ROOT_PASSWORD: your_root_password
-      MYSQL_PASSWORD: your_db_password
-      MYSQL_USER: laravel_user
+      MYSQL_DATABASE: ea_invitation_db
+      MYSQL_ROOT_PASSWORD: ea_root_password
+      MYSQL_PASSWORD: ea_password
+      MYSQL_USER: ea_user
     volumes:
       - dbdata:/var/lib/mysql
       - ./docker/mysql/my.cnf:/etc/mysql/my.cnf

@@ -24,6 +24,14 @@ use App\Http\Controllers\Api\{
     ThemeCategoryController
 };
 
+Route::get('/health', function () {
+    return response()->json([
+        'status' => 'OK',
+        'message' => 'API is running',
+        'timestamp' => now(),
+    ]);
+});
+
 /*
 |--------------------------------------------------------------------------
 | API Routes
