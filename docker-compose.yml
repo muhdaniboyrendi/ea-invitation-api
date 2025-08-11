@@ -1,54 +1,54 @@
-version: "3.8"
+# docker-compose.yml
+version: '3.8'
 
 services:
-  app:
+  ea-invitation-api:
     build:
       context: .
-      dockerfile: Dockerfile
-    container_name: ea-invitation-app
-    restart: always
-    env_file:
-      - .env
+      dockerfile: docker/Dockerfile
+    container_name: ea-invitation-api
+    restart: unless-stopped
     volumes:
-      - ./:/var/www
       - ./storage:/var/www/storage
-      - ./vendor:/var/www/vendor
-    depends_on:
-      - db
+      - ./bootstrap/cache:/var/www/bootstrap/cache
+    environment:
+      - RUN_SEEDERS=false
+    networks:
+      - ea-network
 
   nginx:
-    image: nginx:stable
+    image: nginx:alpine
     container_name: ea-invitation-nginx
-    restart: always
+    restart: unless-stopped
     ports:
-      - "80:80"
-      - "443:443"
+      - "8080:80"
     volumes:
-      - ./:/var/www
-      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./certbot/www:/var/www/certbot
-      - ./certbot/conf:/etc/letsencrypt
+      - .:/var/www
+      - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf
     depends_on:
-      - app
+      - ea-invitation-api
+    networks:
+      - ea-network
 
-  db:
+  mysql:
     image: mysql:8.0
-    container_name: ea-invitation-db
-    restart: always
+    container_name: ea-invitation-mysql
+    restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${DB_DATABASE}
-      MYSQL_USER: ${DB_USERNAME}
-      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ea_invitation
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_PASSWORD: password
+      MYSQL_USER: ea_user
     volumes:
-      - db_data:/var/lib/mysql
-
-  certbot:
-    image: certbot/certbot
-    container_name: ea-invitation-certbot
-    volumes:
-      - ./certbot/www:/var/www/certbot
-      - ./certbot/conf:/etc/letsencrypt
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    networks:
+      - ea-network
 
 volumes:
-  db_data:
+  mysql_data:
+
+networks:
+  ea-network:
+    driver: bridge

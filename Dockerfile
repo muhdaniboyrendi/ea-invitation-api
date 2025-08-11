@@ -1,43 +1,61 @@
-# ===== Stage 1: Build Dependencies =====
-FROM composer:2.7 AS vendor
-
-WORKDIR /app
-
-# Copy composer files
-COPY composer.json composer.lock ./
-
-# Install dependencies (no dev)
-RUN composer install --no-dev --optimize-autoloader --no-interaction
-
-# ===== Stage 2: Production App =====
-FROM php:8.3-fpm
+# docker/Dockerfile
+FROM php:8.3-fpm-alpine
 
 # Install system dependencies
-RUN apt-get update && apt-get install -y \
-    git zip unzip libpng-dev libjpeg-dev libfreetype6-dev \
-    libonig-dev libxml2-dev libzip-dev curl \
-    && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip \
-    && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache \
+    git \
+    curl \
+    libpng-dev \
+    libxml2-dev \
+    zip \
+    unzip \
+    oniguruma-dev \
+    libzip-dev \
+    postgresql-dev
+
+# Install PHP extensions
+RUN docker-php-ext-install \
+    pdo_pgsql \
+    pdo_mysql \
+    mbstring \
+    exif \
+    pcntl \
+    bcmath \
+    gd \
+    zip
+
+# Install Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 # Set working directory
 WORKDIR /var/www
 
-# Copy vendor from builder stage
-COPY --from=vendor /app/vendor ./vendor
+# Copy composer files
+COPY composer.json composer.lock ./
 
-# Copy app code
+# Install dependencies
+RUN composer install --no-dev --optimize-autoloader --no-interaction
+
+# Copy application code
 COPY . .
 
-# Set permissions for Laravel
-RUN chown -R www-data:www-data \
-    /var/www/storage \
-    /var/www/bootstrap/cache
+# Set permissions
+RUN chown -R www-data:www-data /var/www \
+    && chmod -R 755 /var/www/storage \
+    && chmod -R 755 /var/www/bootstrap/cache
 
-# Cache Laravel configuration
-RUN php artisan config:cache && \
-    php artisan route:cache && \
-    php artisan view:cache || true
+# Create entrypoint script
+RUN echo '#!/bin/sh' > /entrypoint.sh && \
+    echo 'php artisan config:cache' >> /entrypoint.sh && \
+    echo 'php artisan route:cache' >> /entrypoint.sh && \
+    echo 'php artisan view:cache' >> /entrypoint.sh && \
+    echo 'php artisan migrate --force' >> /entrypoint.sh && \
+    echo 'if [ "$RUN_SEEDERS" = "true" ]; then' >> /entrypoint.sh && \
+    echo '  php artisan db:seed --force' >> /entrypoint.sh && \
+    echo 'fi' >> /entrypoint.sh && \
+    echo 'php-fpm' >> /entrypoint.sh && \
+    chmod +x /entrypoint.sh
 
 EXPOSE 9000
-CMD ["php-fpm"]
+
+CMD ["/entrypoint.sh"]
