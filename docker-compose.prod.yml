@@ -1,3 +1,4 @@
+# docker-compose.prod.yml
 version: '3.8'
 
 services:
@@ -15,6 +16,14 @@ services:
       - ea-invitation-network
     depends_on:
       - db
+    volumes:
+      - ./storage:/var/www/storage
+      - ./bootstrap/cache:/var/www/bootstrap/cache
+    healthcheck:
+      test: ["CMD", "php", "-v"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   webserver:
     image: nginx:alpine

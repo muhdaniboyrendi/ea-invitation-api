@@ -27,8 +27,8 @@ use App\Http\Controllers\Api\{
 Route::get('/health', function () {
     return response()->json([
         'status' => 'OK',
-        'message' => 'API is running',
         'timestamp' => now(),
+        'service' => 'EA Invitation API'
     ]);
 });
 
