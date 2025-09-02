@@ -17,7 +17,7 @@ class PackageSeeder extends Seeder
             'name' => 'Economy',
             'price' => 100000,
             'features' => [
-                '200 tamu undangan + grup',
+                '100 tamu undangan + grup',
                 '4 foto galeri (max)',
                 'Informasi acara',
                 'Background musik (list)',
@@ -52,11 +52,11 @@ class PackageSeeder extends Seeder
 
         Package::create([
             'name' => 'Business',
-            'price' => 200000,
+            'price' => 250000,
             'features' => [
-                '1000 tamu undangan + grup',
-                '20 foto galeri (max)',
-                '5 video (max)',
+                'Unlimited tamu undangan + grup',
+                '50 foto galeri (max)',
+                '10 video (max)',
                 'Informasi acara',
                 'Background musik custom',
                 'Timer countdown',
@@ -67,27 +67,6 @@ class PackageSeeder extends Seeder
                 'Ucapan tamu',
                 'Kirim hadiah',
                 '6 bulan masa aktif'
-            ]
-        ]);
-        
-        Package::create([
-            'name' => 'First Class',
-            'price' => 300000,
-            'features' => [
-                'Unlimited tamu undangan + grup',
-                'Unlimited foto galeri (max)',
-                'Unlimited video (max)',
-                'Informasi acara',
-                'Background musik custom',
-                'Timer countdown',
-                'Maps lokasi',
-                'Tambah ke kalender',
-                'Story',
-                'RSVP',
-                'Ucapan tamu',
-                'Kirim hadiah',
-                '1 bulan masa aktif',
-                'Custom domain',
             ]
         ]);
     }

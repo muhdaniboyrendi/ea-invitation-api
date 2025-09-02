@@ -123,14 +123,16 @@ Route::get('/invitations/{slug}/all', [InvitationController::class, 'getInvitati
 | Protected API Routes (Authentication Required)
 |--------------------------------------------------------------------------
 */
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['cookie.auth', 'auth:sanctum'])->group(function () {
     
     /*
     |--------------------------------------------------------------------------
     | Authentication Routes (Protected)
     |--------------------------------------------------------------------------
     */
+    Route::get('/me', [AuthController::class, 'me']);
     Route::post('/logout', [AuthController::class, 'logout']);
+    Route::post('/refresh', [AuthController::class, 'refresh']);
 
     /*
     |--------------------------------------------------------------------------
