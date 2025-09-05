@@ -40,7 +40,7 @@ class GoogleAuthController extends Controller
             $token = $user->createToken('auth_token')->plainTextToken;
 
                 return response()->json([
-                    'status' => true,
+                    'status' => 'success',
                     'message' => 'User authenticated successfully',
                     'data' => [
                         'token' => $token,
@@ -48,13 +48,13 @@ class GoogleAuthController extends Controller
                     ],
                 ]);
         } catch (\Exception $e) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Authentication failed',
-                    'errors' => [
-                        'google' => [$e->getMessage()],
-                    ],
-                ], 500);
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Authentication failed',
+                'errors' => [
+                    'google' => [$e->getMessage()],
+                ],
+            ], 500);
             
             $frontendUrl = config('app.frontend_url', 'http://localhost:3000');
             return redirect("{$frontendUrl}/login?error=" . urlencode('Authentication failed: ' . $e->getMessage()));

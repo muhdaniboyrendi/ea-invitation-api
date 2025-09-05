@@ -15,7 +15,7 @@ class UserSeeder extends Seeder
     {
         User::create([
             'name' => 'Muhdani Boyrendi Erlan Azhari',
-            'email' => 'muhdaniboyrendi@gmail.com',
+            'email' => 'erlanazrdev@gmail.com',
             'phone' => '082220633024',
             'password' => '12345678',
             'role' => 'admin',
